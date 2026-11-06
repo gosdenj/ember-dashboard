@@ -903,6 +903,22 @@ sudo systemctl enable --now ember
 > with a `Job:` line, which means *queued*, not crashed. Enable it in
 > both targets instead.
 
+### In a container
+
+Ember is standard library only, so there is nothing to install in the
+image and nothing to compile:
+
+```bash
+docker compose up -d --build
+```
+
+The settings, the history and the Hive session live in the `ember-data`
+volume, so they survive a rebuild and a redeploy.
+
+To have Portainer deploy it from this repository instead - building the
+image on every push and rolling it out - see
+**[docs/PORTAINER.md](docs/PORTAINER.md)**.
+
 ---
 
 ## Privacy
