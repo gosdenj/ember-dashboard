@@ -1,0 +1,36 @@
+# The build context should be the code, not the whole working tree.
+#
+# Most important: the settings file holds the Hive password and the
+# Octopus API key, and the data directory holds the history and the Hive
+# session. They are mounted into the container at run time and must never
+# be copied into an image, where they would sit in a layer forever.
+settings.json
+settings.json.tmp
+hive-session.json
+history.db
+data/
+*.db
+*.json.tmp
+.env
+
+# Version control and Python bits.
+.git
+.gitignore
+.github/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# The tests and the checks they drive are not part of the server.
+tests/
+probes/
+docs/
+design/
+*.md
+
+# Editor and OS noise.
+.DS_Store
+.idea/
+.vscode/
+*.swp

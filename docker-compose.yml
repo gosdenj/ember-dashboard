@@ -1,0 +1,69 @@
+# Ember, in a container.
+#
+#   docker compose up -d --build     # start it
+#
+# The data directory is NOT part of the image. It lives in ./data on the
+# host and is mounted into the container, so:
+#
+#   - a rebuild never loses the settings,
+#   - the image never carries the password or the API keys,
+#   - and the same data directory can be moved to another machine as it is.
+#
+# The whole ./data directory is mounted, not just the settings file,
+# because Ember writes the history database and the Hive session next to
+# it, and replaces the settings file atomically - both of which need a
+# real directory, not a single mounted file.
+
+services:
+  ember:
+    image: ghcr.io/gosdenj/ember-dashboard:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ember
+    restart: unless-stopped
+
+    # The port on the host that the Pi screens will use. Change it here, or
+    # set EMBER_PORT in .env.
+    ports:
+      - "${EMBER_PORT:-8766}:8766"
+
+    volumes:
+      # The settings, the history and the Hive session. This directory is
+      # in .gitignore. It can be moved elsewhere with EMBER_DATA_DIR in
+      # .env.
+      - ${EMBER_DATA_DIR:-./data}:/data
+
+    environment:
+      # Where the data lives, inside the container.
+      EMBER_DATA_DIR: /data
+      # Listen on every interface inside the container, so the port mapping
+      # above can reach it.
+      EMBER_HOST: 0.0.0.0
+      # The port inside the container. The host side is the mapping above.
+      EMBER_PORT: "8766"
+      # The container's timezone. The dashboard's own timezone is the
+      # timezone setting; this is what the OS is told.
+      TZ: "${TZ:-Europe/London}"
+
+    # Run as the same person who owns the data directory, so Ember can
+    # read it and write to it. 1000 is the first ordinary user on
+    # Raspberry Pi OS; if yours is different, put EMBER_UID and EMBER_GID
+    # in .env.
+    user: "${EMBER_UID:-1000}:${EMBER_GID:-1000}"
+
+    # Ember is chatty for a few seconds at start, then quiet. Cap the log
+    # so it cannot quietly fill the disk.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
+    cpus: "0.5"
+    pids_limit: 100

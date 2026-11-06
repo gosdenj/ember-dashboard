@@ -1,0 +1,160 @@
+# Build the image and publish it to the GitHub Container Registry.
+#
+# Portainer redeploys a stack with 'docker compose up -d', and there is no
+# '--build' in it: a stack redeploy updates the compose file but keeps the
+# image it already has.  So the image has to be published somewhere, and
+# this is that somewhere.  A push to main builds it and pushes it;
+# Portainer polls the repository, re-pulls the image and restarts the
+# container with the new one.
+#
+# The registry login uses the workflow's own GITHUB_TOKEN, which needs the
+# 'packages: write' permission below - there is no secret to set up.
+
+name: publish the image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  # A safety net.
+  #
+  # A push made with some kinds of token - an OAuth token, for one - does
+  # not start a workflow, and a dashboard waiting for an image that is
+  # never built is a dashboard that does not get its updates.  This runs
+  # every four hours, checks whether the image for the newest commit is
+  # already published, and does nothing at all if it is.
+  schedule:
+    - cron: '17 */4 * * *'
+
+# The workflow's own token can write to the registry, and can make the one
+# small commit at the end that tells Portainer the image is ready.
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    name: the tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: the code
+        uses: actions/checkout@v4
+
+      - name: the python
+        uses: actions/setup-python@v5
+        with:
+          # The same version as the image, so what is tested is what ships.
+          python-version: "3.13"
+
+      - name: run the test suite
+        run: python3 -B -m unittest discover -s tests -v
+
+      - name: validate the compose file
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: validate the Portainer stack compose file
+        run: docker compose -f docker-compose.portainer.yml config --quiet
+
+  build:
+    name: build and publish
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: the code
+        uses: actions/checkout@v4
+
+      # The dashboard runs on a Raspberry Pi, on an Apple Silicon Mac and
+      # on an Intel server, and it is built here rather than on the
+      # runner, so the emulation is set up first.
+      - name: emulation for other architectures
+        uses: docker/setup-qemu-action@v3
+
+      - name: the builder
+        uses: docker/setup-buildx-action@v3
+
+      - name: sign in to the registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: name the image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+
+      # Is there anything to do?
+      #
+      # The image is tagged with the commit it was built from, so the
+      # registry can be asked whether this commit has already been built.
+      # A commit that is only a signal - the empty one made at the end -
+      # carries no code of its own, and the image for it is the image for
+      # the commit before it, which is already published.
+      - name: is there anything to do?
+        id: check
+        run: |
+          set -euo pipefail
+          if git log -1 --format=%B | grep -q "\[skip ci\]"; then
+            echo "the last commit is only a signal - there is nothing to do"
+            echo "todo=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Is the image for this commit in the registry?
+          #
+          # 'imagetools inspect' asks the registry about the tag, using the
+          # credentials the login step has already put in place.  It is
+          # used rather than a raw request for the manifest because a
+          # multi-architecture image is an index, and a request that does
+          # not say it wants an index is answered with a 404 - which
+          # would make every check look like the image was missing.
+          #
+          # A package that does not exist yet is not an error either: it
+          # has no image for this commit, which is the same answer.
+          if docker buildx imagetools inspect \
+              "${REGISTRY}/${IMAGE_NAME}:sha-${GITHUB_SHA}" >/dev/null 2>&1; then
+            echo "the image for this commit is already published"
+            echo "todo=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "todo=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: build and push
+        if: steps.check.outputs.todo == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # A hosted Intel server, an Apple Silicon Mac or a Raspberry Pi 4
+          # or 5, and a Raspberry Pi 3.  One image for all of them.
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Now the image is in the registry, and Portainer can be told.
+      #
+      # Portainer notices that the repository has changed and redeploys the
+      # stack, re-pulling the image as it does.  It would rather do that
+      # *after* the image is published, because a redeploy that finds the
+      # old image leaves the old code running until the next commit.
+      #
+      # So this empty commit says "the image for this commit is ready", and
+      # it is made after the push rather than before it.  '[skip ci]' keeps
+      # it from starting the whole workflow all over again.
+      - name: tell Portainer the image is ready
+        if: steps.check.outputs.todo == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "publish ${GITHUB_SHA:0:7} [skip ci]"
+          git push

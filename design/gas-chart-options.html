@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ember — what the gas chart could be</title>
+<style>
+  @font-face { font-family: 'Outfit'; src: url('../ember/web/fonts/outfit-100_900.woff2') format('woff2'); font-weight: 100 900; }
+  @font-face { font-family: 'JetBrains Mono'; src: url('../ember/web/fonts/jetbrains-mono-100_800.woff2') format('woff2'); font-weight: 100 800; }
+  :root {
+    --bg: #0e1116; --panel: #151a21; --panel-2: #1a2029; --line: rgba(255,255,255,.075);
+    --ink: #e8edf2; --dim: #8a94a3; --dimmer: #5d6874;
+    --ember: #ef8a4a; --ember-soft: rgba(239,138,74,.15);
+    --teal: #2fb89a; --teal-soft: rgba(47,184,154,.14);
+    --ice: #5aa9e6; --ice-soft: rgba(90,169,230,.14);
+    --plum: #b07ad6; --plum-soft: rgba(176,122,214,.14);
+    --sans: 'Outfit', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  body { margin: 0; background: #090c10; color: var(--ink); font-family: var(--sans); padding: 26px; }
+  h1 { font-size: 22px; margin: 0 0 4px; font-weight: 600; }
+  .intro { color: var(--dim); font-size: 13px; margin: 0 0 26px; max-width: 78ch; line-height: 1.5; }
+  .opt { margin-bottom: 34px; }
+  .opt h2 { font-size: 15px; margin: 0 0 3px; font-weight: 600; }
+  .opt .why { color: var(--dim); font-size: 12.5px; margin: 0 0 11px; max-width: 92ch; line-height: 1.5; }
+  .panel {
+    width: 800px; height: 480px; background: var(--bg); border-radius: 10px;
+    padding: 14px 16px; box-sizing: border-box; overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .p-h { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .p-h h4 { margin: 0; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; font-weight: 600; }
+  .src { color: var(--dimmer); font-size: 10.5px; font-style: italic; }
+  .kpi { font-family: var(--mono); font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+  .mono { font-family: var(--mono); }
+  .dim { color: var(--dim); } .dimmer { color: var(--dimmer); }
+  .plum { color: var(--plum); } .teal { color: var(--teal); } .ember { color: var(--ember); }
+  .tabs { display: flex; gap: 4px; }
+  .tabs span { font-size: 10px; letter-spacing: .08em; padding: 3px 7px; border-radius: 4px; color: var(--dimmer); }
+  .tabs .on { background: var(--panel-2); color: var(--ink); }
+  .foot { color: var(--dimmer); font-size: 10px; margin-top: 6px; font-style: italic; }
+  .legend { display: flex; gap: 14px; font-size: 10px; color: var(--dim); margin-top: 4px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+
+<h1>Ember — what the gas chart could be</h1>
+<p class="intro">
+  The 24-hour bar chart is the wrong shape for this data. Octopus delivers gas a day or two late,
+  so the last 24 hours is usually empty or nearly so — and on the days when it is not empty, it is
+  showing a day that ended two days ago. Three alternatives, drawn with the real numbers:
+  2.43 m³ a day, a meter exchange on 3 November, and today with no reading at all.
+</p>
+
+<!-- ============================ A ============================ -->
+<div class="opt" id="optA">
+  <h2>A &nbsp;·&nbsp; A week of days</h2>
+  <p class="why">
+    One column per day for the last seven days, height = that day's total, with a line for the
+    weekly average and today's estimate in plum. It is always full, it is the unit people think in
+    (a day's gas), and it sits next to the "7-day average" and "vs average" tiles without
+    repeating them. A day with no readings is drawn as a gap, never as a zero — and the meter
+    exchange reads as what it is.
+  </p>
+  <div class="panel">
+    <div class="p-h">
+      <h4>Gas &middot; the last seven days</h4>
+      <span class="src">from your Octopus meter</span>
+    </div>
+    <div style="display:flex;gap:14px">
+      <div style="flex:1">
+        <svg width="470" height="380" viewBox="0 0 470 380">
+          <line x1="0" y1="82.7" x2="470" y2="82.7" stroke="rgba(255,255,255,.20)" stroke-dasharray="3 4"/>
+          <text x="2" y="73.7" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="10">7-day average 2.43 m³</text>
+          <rect x="16" y="102.1" width="40" height="227.9" rx="3" fill="#2fb89a"/>
+          <text x="36" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="11" text-anchor="middle">MON</text>
+          <rect x="78" y="74.6" width="40" height="255.4" rx="3" fill="#2fb89a"/>
+          <text x="98" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="11" text-anchor="middle">TUE</text>
+          <rect x="140" y="114.3" width="40" height="215.7" rx="3" fill="#2fb89a"/>
+          <text x="160" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="11" text-anchor="middle">WED</text>
+          <rect x="202" y="62.4" width="40" height="267.6" rx="3" fill="#2fb89a"/>
+          <text x="222" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="11" text-anchor="middle">THU</text>
+          <rect x="264" y="92.9" width="40" height="237.1" rx="3" fill="#2fb89a"/>
+          <text x="284" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="11" text-anchor="middle">FRI</text>
+          <rect x="326" y="40.0" width="40" height="290.0" rx="3" fill="#2fb89a"/>
+          <text x="346" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="11" text-anchor="middle">SAT</text>
+          <rect x="388" y="84.8" width="40" height="245.2" rx="3" fill="#b07ad6" opacity=".40" stroke="#b07ad6" stroke-dasharray="3 3"/>
+          <text x="408" y="73.8" fill="#b07ad6" font-family="Outfit,sans-serif" font-size="10" text-anchor="middle">est. 2.41</text>
+          <text x="408" y="351" fill="#b07ad6" font-family="Outfit,sans-serif" font-size="11" text-anchor="middle">TODAY</text>
+          <line x1="0" y1="330" x2="470" y2="330" stroke="rgba(255,255,255,.12)"/>
+          <text x="0" y="376" fill="#5d6874" font-family="Outfit,sans-serif" font-size="10">a week of daily totals</text>
+        </svg>
+      </div>
+      <div style="width:190px">
+        <div class="p-h" style="margin-bottom:6px"><h4>Today</h4><span class="src">estimated</span></div>
+        <div class="kpi plum" style="font-size:34px">2.41<span class="u" style="font-size:.46em;color:#8a94a3;margin-left:3px">m³</span></div>
+        <div class="dim" style="font-size:10.5px;margin-top:5px">estimated &middot; &plusmn;0.05 m³<br>about &pound;2.57</div>
+        <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:9px">
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span class="dim">Week</span><span class="mono">16.8 m³</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px"><span class="dim">Average</span><span class="mono">2.43 m³</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px"><span class="dim">Busiest</span><span class="mono">Sat 2.85</span></div>
+        </div>
+        <div class="foot">A day with no readings is a gap, not a zero.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ B ============================ -->
+<div class="opt" id="optB">
+  <h2>B &nbsp;·&nbsp; The shape of a day</h2>
+  <p class="why">
+    The same 24 hours as the old chart, but each column is the <i>average</i> use in that hour
+    across the last week, not one night's readings. It is never empty, it answers a question the
+    old chart could not — <i>when</i> does this house use gas — and it makes the cold morning and
+    the warm evening visible at a glance. Today's actual figure, or its estimate, is marked.
+  </p>
+  <div class="panel">
+    <div class="p-h">
+      <h4>Gas &middot; the shape of a day</h4>
+      <span class="src">your average hour, over the last seven days</span>
+    </div>
+    <div style="display:flex;gap:14px">
+      <div style="flex:1">
+        <svg width="470" height="380" viewBox="0 0 470 380">
+          <rect x="0" y="0" width="470" height="38" fill="rgba(90,169,230,.05)"/>
+          <rect x="8" y="301.8" width="12" height="28.2" rx="2" fill="#2fb89a" opacity="0.50"/>
+          <rect x="27" y="293.8" width="12" height="36.2" rx="2" fill="#2fb89a" opacity="0.52"/>
+          <rect x="46" y="269.6" width="12" height="60.4" rx="2" fill="#2fb89a" opacity="0.56"/>
+          <rect x="65" y="181.0" width="12" height="149.0" rx="2" fill="#2fb89a" opacity="0.73"/>
+          <rect x="84" y="100.4" width="12" height="229.6" rx="2" fill="#2fb89a" opacity="0.89"/>
+          <rect x="103" y="64.2" width="12" height="265.8" rx="2" fill="#2fb89a" opacity="0.95"/>
+          <rect x="122" y="100.4" width="12" height="229.6" rx="2" fill="#2fb89a" opacity="0.89"/>
+          <rect x="141" y="213.2" width="12" height="116.8" rx="2" fill="#2fb89a" opacity="0.67"/>
+          <rect x="160" y="273.6" width="12" height="56.4" rx="2" fill="#2fb89a" opacity="0.56"/>
+          <rect x="179" y="297.8" width="12" height="32.2" rx="2" fill="#2fb89a" opacity="0.51"/>
+          <rect x="198" y="285.7" width="12" height="44.3" rx="2" fill="#2fb89a" opacity="0.53"/>
+          <rect x="217" y="249.4" width="12" height="80.6" rx="2" fill="#2fb89a" opacity="0.60"/>
+          <rect x="236" y="197.1" width="12" height="132.9" rx="2" fill="#2fb89a" opacity="0.70"/>
+          <rect x="255" y="124.6" width="12" height="205.4" rx="2" fill="#2fb89a" opacity="0.84"/>
+          <rect x="274" y="56.1" width="12" height="273.9" rx="2" fill="#2fb89a" opacity="0.97"/>
+          <rect x="293" y="40.0" width="12" height="290.0" rx="2" fill="#2fb89a" opacity="1.00"/>
+          <rect x="312" y="96.4" width="12" height="233.6" rx="2" fill="#2fb89a" opacity="0.89"/>
+          <rect x="331" y="181.0" width="12" height="149.0" rx="2" fill="#2fb89a" opacity="0.73"/>
+          <rect x="350" y="237.4" width="12" height="92.6" rx="2" fill="#ef8a4a"/>
+          <rect x="369" y="269.6" width="12" height="60.4" rx="2" fill="#2fb89a" opacity="0.56"/>
+          <rect x="388" y="289.7" width="12" height="40.3" rx="2" fill="#2fb89a" opacity="0.53"/>
+          <rect x="407" y="285.7" width="12" height="44.3" rx="2" fill="#2fb89a" opacity="0.53"/>
+          <rect x="426" y="269.6" width="12" height="60.4" rx="2" fill="#2fb89a" opacity="0.56"/>
+          <rect x="445" y="229.3" width="12" height="100.7" rx="2" fill="#2fb89a" opacity="0.64"/>
+          <line x1="0" y1="330" x2="470" y2="330" stroke="rgba(255,255,255,.12)"/>
+          <text x="8" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="10">00:00</text>
+          <text x="118" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="10">06:00</text>
+          <text x="228" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="10">12:00</text>
+          <text x="340" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="10">18:00</text>
+          <text x="436" y="351" fill="#5d6874" font-family="Outfit,sans-serif" font-size="10">23:00</text>
+          <text x="0" y="376" fill="#5d6874" font-family="Outfit,sans-serif" font-size="10">the cold morning and the warm evening, every day</text>
+        </svg>
+      </div>
+      <div style="width:190px">
+        <div class="p-h" style="margin-bottom:6px"><h4>Today</h4><span class="src">estimated</span></div>
+        <div class="kpi plum" style="font-size:34px">2.41<span class="u" style="font-size:.46em;color:#8a94a3;margin-left:3px">m³</span></div>
+        <div class="dim" style="font-size:10.5px;margin-top:5px">estimated &middot; &plusmn;0.05 m³<br>about &pound;2.57</div>
+        <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:9px">
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span class="dim">Busiest hour</span><span class="mono">19:00</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px"><span class="dim">Morning peak</span><span class="mono">07:00</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px"><span class="dim">Night floor</span><span class="mono">02:00</span></div>
+        </div>
+        <div class="foot">One night's readings cannot show this. A week can.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ C ============================ -->
+<div class="opt" id="optC">
+  <h2>C &nbsp;·&nbsp; The month</h2>
+  <p class="why">
+    A calendar grid of the last 30 days, each day shaded by how much gas it used. It carries the
+    month budget, it shows the meter exchange as a visible hole rather than a mystery, and it is
+    the view that answers "is this month normal?" — which is the question a 24-hour chart never
+    could. This was the direction chosen in the design; the missing piece was ever having the
+    history to draw it.
+  </p>
+  <div class="panel">
+    <div class="p-h">
+      <h4>Gas &middot; the month</h4>
+      <span class="src">from your Octopus meter</span>
+    </div>
+    <div style="display:flex;gap:14px">
+      <div style="flex:1">
+        <svg width="470" height="380" viewBox="0 0 470 380">
+          <rect x="4" y="30" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.78"/>
+          <rect x="54" y="30" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.85"/>
+          <rect x="104" y="30" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.75"/>
+          <rect x="154" y="30" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.88"/>
+          <rect x="204" y="30" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.80"/>
+          <rect x="254" y="30" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.93"/>
+          <rect x="304" y="30" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.77"/>
+          <rect x="4" y="84" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.73"/>
+          <rect x="54" y="84" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.89"/>
+          <rect x="104" y="84" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.70"/>
+          <rect x="154" y="84" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.91"/>
+          <rect x="204" y="84" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.79"/>
+          <rect x="254" y="84" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.94"/>
+          <rect x="304" y="84" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.73"/>
+          <rect x="4" y="138" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.83"/>
+          <rect x="54" y="138" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.77"/>
+          <rect x="104" y="138" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.92"/>
+          <rect x="154" y="138" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.68"/>
+          <rect x="204" y="138" width="32" height="32" rx="4" fill="#2fb89a" fill-opacity="0.85"/>
+          <rect x="254" y="138" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="304" y="138" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="4" y="192" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="54" y="192" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="104" y="192" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="154" y="192" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="204" y="192" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="254" y="192" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="304" y="192" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="4" y="246" width="32" height="32" rx="4" fill="none" stroke="rgba(255,255,255,.16)" stroke-dasharray="3 3"/>
+          <rect x="54" y="246" width="32" height="32" rx="4" fill="#b07ad6" fill-opacity=".30" stroke="#b07ad6" stroke-dasharray="3 3"/>
+          <text x="20" y="18" fill="#5d6874" font-family="Outfit,sans-serif" font-size="9.5" text-anchor="middle">M</text>
+          <text x="70" y="18" fill="#5d6874" font-family="Outfit,sans-serif" font-size="9.5" text-anchor="middle">T</text>
+          <text x="120" y="18" fill="#5d6874" font-family="Outfit,sans-serif" font-size="9.5" text-anchor="middle">W</text>
+          <text x="170" y="18" fill="#5d6874" font-family="Outfit,sans-serif" font-size="9.5" text-anchor="middle">T</text>
+          <text x="220" y="18" fill="#5d6874" font-family="Outfit,sans-serif" font-size="9.5" text-anchor="middle">F</text>
+          <text x="270" y="18" fill="#5d6874" font-family="Outfit,sans-serif" font-size="9.5" text-anchor="middle">S</text>
+          <text x="320" y="18" fill="#5d6874" font-family="Outfit,sans-serif" font-size="9.5" text-anchor="middle">S</text>
+          <text x="20" y="305" fill="#b07ad6" font-family="Outfit,sans-serif" font-size="10.5" text-anchor="middle">5</text>
+          <text x="370" y="140" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="10.5">3 Nov</text>
+          <text x="370" y="155" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="10.5">the meter</text>
+          <text x="370" y="170" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="10.5">was swapped</text>
+          <text x="0" y="330" fill="#5d6874" font-family="Outfit,sans-serif" font-size="10">a month of days, shaded by what each one cost</text>
+        </svg>
+      </div>
+      <div style="width:190px">
+        <div class="p-h" style="margin-bottom:6px"><h4>November</h4><span class="src">metered</span></div>
+        <div class="kpi" style="font-size:34px;color:#e8edf2">&pound;5.96<span class="u" style="font-size:.46em;color:#8a94a3;margin-left:3px">of &pound;60</span></div>
+        <div class="dim" style="font-size:10.5px;margin-top:5px">9.9% of the month<br>and 5 days still to go</div>
+        <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:9px">
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span class="dim">Busiest</span><span class="mono">2 Nov 2.9</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px"><span class="dim">Quietest</span><span class="mono">29 Oct 1.8</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px"><span class="dim">No readings</span><span class="mono">9 days</span></div>
+        </div>
+        <div class="foot">The hole is the meter swap, and Octopus fills it in later.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

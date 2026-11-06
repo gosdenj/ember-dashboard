@@ -1,0 +1,93 @@
+# Ember, as a Portainer stack.
+#
+#   Stacks -> Add stack -> Git repository
+#     Repository URL      https://github.com/gosdenj/ember-dashboard.git
+#     Repository reference refs/heads/main
+#     Compose path        docker-compose.portainer.yml
+#
+# The image comes from the GitHub Container Registry rather than from the
+# repository, because Portainer redeploys a stack with 'docker compose up
+# -d' - there is no '--build' in it.  A stack redeploy therefore updates
+# the compose file but keeps the image it already has, so the image has to
+# be published somewhere for a new commit to reach the running container.
+#
+# The GitHub workflow (.github/workflows/ci.yml) builds and publishes the
+# image on every push, and Portainer is told to re-pull the image every
+# time it updates the stack.  Push, wait a few minutes, and the new
+# version is running.
+
+services:
+  ember:
+    image: ghcr.io/gosdenj/ember-dashboard:latest
+    container_name: ember
+    restart: unless-stopped
+
+    # The port on the host that the Pi screens will use.  Change it in the
+    # stack's environment variables.
+    ports:
+      - "${EMBER_PORT:-8766}:8766"
+
+    volumes:
+      # The settings file, the history database and the Hive session.
+      #
+      # A named volume rather than a folder on the host: it is the same
+      # everywhere, it survives a redeploy, and it does not depend on the
+      # host and the container sharing a filesystem - which they do not, if
+      # Portainer is running in a container with Docker Desktop underneath.
+      #
+      # The volume takes its ownership from the image, where /data belongs
+      # to uid 1000 - the uid the container runs as.  So Ember can write to
+      # it without anybody having to chown anything.
+      - ember-data:/data
+
+    environment:
+      # Where the data lives, inside the container.
+      EMBER_DATA_DIR: /data
+      # Listen on every interface inside the container, so the port mapping
+      # above can reach it.
+      EMBER_HOST: 0.0.0.0
+      # The port inside the container.  The host side is the mapping above.
+      EMBER_PORT: "8766"
+      # The container's timezone.  The dashboard's own timezone is the
+      # timezone setting; this is what the OS is told.
+      TZ: "${TZ:-Europe/London}"
+
+    # The container runs as uid 1000, which owns the volume, so it can
+    # write the settings and nothing else.
+    user: "${EMBER_UID:-1000}:${EMBER_GID:-1000}"
+
+    # Ember is chatty for a few seconds at start, then quiet.  Cap the log
+    # so it cannot quietly fill the disk.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Ember is reached directly, on the host port above.
+    #
+    # There is no proxy_net here: that network is created by the caddy
+    # stack, and a stack that declares it as external cannot be deployed
+    # to a host where it does not exist yet.  If a hostname is wanted
+    # later, join it then - and make sure the network is there first.
+
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
+    cpus: "0.5"
+    pids_limit: 100
+
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8766/healthz',timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  ember-data:
+    # The name is fixed, so the volume is the same one whatever the stack
+    # is called, and it is easy to find.
+    name: ember-data

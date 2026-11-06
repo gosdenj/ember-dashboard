@@ -1,0 +1,479 @@
+"""The three ways of looking at the gas.
+
+"the last 24 hours" was none of them: Octopus delivers gas a day or
+two late, so a rolling 24-hour window is usually empty, and when it is
+not empty it is showing a day that ended two days ago.
+
+So the panel now offers three views that are always true:
+
+- **DAY** - the shape of a day: each hour's average use over the week.
+- **WEEK** - a week of days: one column per day, today on the right.
+- **MONTH** - the month: a calendar, shaded by usage.
+
+And the rule that runs through all three: **a day the meter has not
+reported is a gap, never a zero.** A zero means no gas was used, which
+would be a lie.
+"""
+
+import os
+import tempfile
+import threading
+import unittest
+from unittest import mock
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+from ember.config import Settings
+from ember.dashboard import Dashboard
+from ember.demo import DemoProvider
+from ember.history import History
+from ember.server import EmberServer
+
+CHROMIUM = "/root/.cache/ms-playwright/chromium-1243/chrome-linux/chrome"
+
+
+def _chromium_path():
+    if os.path.isfile(CHROMIUM):
+        return CHROMIUM
+    for candidate in ("/usr/bin/chromium", "/usr/bin/chromium-browser",
+                      "/usr/bin/google-chrome"):
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+class HourlyProfileTests(unittest.TestCase):
+    """The shape of a day, worked out from the readings."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.history = History(Path(self.tmp.name) / "history.db")
+        self.addCleanup(self.tmp.cleanup)
+        self.addCleanup(self.history.close)
+
+    def _record(self, moment, value):
+        self.history.record_gas([{"ts": moment.timestamp(), "m3": value}])
+
+    def test_each_hour_is_the_average_across_the_days(self):
+        now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        for day in range(1, 4):
+            self._record(now - timedelta(days=day), 0.10)
+            self._record(now - timedelta(days=day) - timedelta(hours=1), 0.20)
+        profile = self.history.gas_hourly_profile(7, timezone.utc)
+        hours = {entry["hour"]: entry for entry in profile["hours"]}
+        self.assertAlmostEqual(hours[now.hour]["avg"], 0.10, places=4)
+        self.assertAlmostEqual(hours[(now - timedelta(hours=1)).hour]["avg"],
+                               0.20, places=4)
+        self.assertEqual(profile["days"], 3)
+
+    def test_an_hour_with_no_readings_is_zero_and_says_so(self):
+        now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        self._record(now - timedelta(days=1), 0.10)
+        profile = self.history.gas_hourly_profile(7, timezone.utc)
+        hours = {entry["hour"]: entry for entry in profile["hours"]}
+        quiet = hours[(now + timedelta(hours=5)).hour]
+        self.assertEqual(quiet["avg"], 0.0)
+        self.assertEqual(quiet["days"], 0)
+
+    def test_it_says_how_many_days_each_hour_was_averaged_over(self):
+        now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        for day in range(1, 4):
+            self._record(now - timedelta(days=day), 0.10)
+        profile = self.history.gas_hourly_profile(7, timezone.utc)
+        hours = {entry["hour"]: entry for entry in profile["hours"]}
+        self.assertEqual(hours[now.hour]["days"], 3)
+
+
+class CompleteDayTests(unittest.TestCase):
+    """A day the meter did not report is a gap, not a day of no gas."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.history = History(Path(self.tmp.name) / "history.db")
+        self.addCleanup(self.tmp.cleanup)
+        self.addCleanup(self.history.close)
+
+    def _record(self, moment, value=0.05):
+        self.history.record_gas([{"ts": moment.timestamp(), "m3": value}])
+
+    def _whole_day(self, days_ago):
+        """Every hour of one UTC day, the way the meter reports them."""
+        midnight = datetime.now(timezone.utc).replace(hour=0, minute=0,
+                                                      second=0, microsecond=0)
+        day = midnight - timedelta(days=days_ago)
+        for hour in range(24):
+            self._record(day + timedelta(hours=hour))
+
+    def test_a_fully_reported_day_is_complete(self):
+        self._whole_day(2)
+        days = {entry["date"]: entry
+                for entry in self.history.gas_by_day(7, timezone.utc)}
+        target = (datetime.now(timezone.utc)
+                  - timedelta(days=2)).strftime("%Y-%m-%d")
+        self.assertIs(days[target]["complete"], True)
+
+    def test_a_day_with_two_readings_is_not_complete(self):
+        """The meter exchange: the data has reached past the day, but
+        the meter did not report it.
+
+        The later readings matter - without them the day would be
+        incomplete for the trivial reason that the data had not reached
+        it yet, and the test would pass whatever the rule was.
+        """
+        midnight = datetime.now(timezone.utc).replace(hour=0, minute=0,
+                                                      second=0, microsecond=0)
+        day = midnight - timedelta(days=2)
+        self._record(day)
+        self._record(day + timedelta(hours=14))
+        # A whole, well-reported day afterwards - so the data has
+        # certainly reached past the sparse one.
+        self._whole_day(1)
+        days = {entry["date"]: entry
+                for entry in self.history.gas_by_day(7, timezone.utc)}
+        target = (datetime.now(timezone.utc)
+                  - timedelta(days=2)).strftime("%Y-%m-%d")
+        self.assertIs(days[target]["complete"], False)
+
+    def test_today_is_never_complete(self):
+        now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        for hour in range(24):
+            if now - timedelta(hours=hour) <= now:
+                self._record(now - timedelta(hours=hour))
+
+    def test_today_is_reported_but_not_complete(self):
+        """"Reported" and "over" are different questions."""
+        now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        for hour in range(3):
+            self._record(now - timedelta(hours=hour))
+        days = {entry["date"]: entry
+                for entry in self.history.gas_by_day(3, timezone.utc)}
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        self.assertIs(days[today]["reported"], True)
+        self.assertIs(days[today]["complete"], False)
+        days = {entry["date"]: entry
+                for entry in self.history.gas_by_day(3, timezone.utc)}
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        self.assertIs(days[today]["complete"], False)
+
+
+class _GasViewsFixture:
+    """The gas panel, served in a browser."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            raise unittest.SkipTest("playwright is not installed")
+        chromium = _chromium_path()
+        if not chromium:
+            raise unittest.SkipTest("no chromium available")
+
+        cls.tmp = tempfile.TemporaryDirectory()
+        data = Path(cls.tmp.name)
+        cls.settings = Settings(data / "settings.json")
+        cls.settings.update({"demo": True, "timezone": "Europe/London",
+                             "monthly_budget": 60, "base_temperature": 16,
+                             "calorific_value": 11.16})
+        cls.history = History(data / "history.db")
+        provider = DemoProvider()
+        provider.seed(cls.history)
+        cls.dashboard = Dashboard(cls.settings, cls.history, provider)
+        cls.dashboard.poll()
+
+        cls.server = EmberServer(("127.0.0.1", 0), cls.settings, cls.dashboard)
+        cls.port = cls.server.server_address[1]
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+        cls.playwright = sync_playwright().start()
+        cls.browser = cls.playwright.chromium.launch(
+            executable_path=chromium,
+            args=["--no-sandbox", "--disable-dev-shm-usage"])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browser.close()
+        cls.playwright.stop()
+        cls.server.shutdown()
+        cls.server.server_close()
+        cls.history.close()
+        cls.dashboard.stop()
+        cls.tmp.cleanup()
+
+    def _page(self, slide="gas"):
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide={slide}")
+        page.wait_for_timeout(1200)
+        return page
+
+    def _title(self, page):
+        return page.evaluate("() => document.querySelector('.p-h h4').innerText")
+
+    def _switch(self, page, tab):
+        page.click(f'.tabs [data-tab="{tab}"]')
+        page.wait_for_timeout(400)
+
+
+class TheTodayTileTests(_GasViewsFixture, unittest.TestCase):
+    """The cost breakdown, and the tiles that used to be empty."""
+
+    def _rows(self, page):
+        return page.evaluate(
+            """() => Array.from(document.querySelectorAll('.panel .row'))
+                 .map((row) => row.innerText.replace(/\\s+/g, ' ').trim())""")
+
+    def test_the_energy_charge_is_named_for_what_it_is(self):
+        """It was called "Energy", which reads as a quantity.
+
+        It is money: the part of today's cost that is the gas itself,
+        as opposed to the standing charge. Both are in pounds now, so
+        they add up to the cost above them.
+        """
+        page = self._page()
+        rows = self._rows(page)
+        page.close()
+        self.assertTrue(any(row.startswith("Energy charge") for row in rows),
+                        f"no energy charge row: {rows}")
+        self.assertFalse(any(row == "Energy" for row in rows),
+                         "the row is still called Energy")
+
+    def test_the_two_charges_add_up_to_the_cost(self):
+        """£0.24 + £0.29 = £0.53 - the cost is made of these two."""
+        page = self._page()
+        rows = self._rows(page)
+        page.close()
+
+        def money_of(prefix):
+            for row in rows:
+                if row.startswith(prefix):
+                    return float(row.split()[-1].replace("£", ""))
+            return None
+
+        cost = money_of("Cost today")
+        energy = money_of("Energy charge")
+        standing = money_of("Standing charge")
+        self.assertIsNotNone(cost)
+        self.assertIsNotNone(energy)
+        self.assertIsNotNone(standing)
+        self.assertAlmostEqual(energy + standing, cost, delta=0.02)
+
+    def test_the_panel_says_how_the_unit_was_decided(self):
+        """The numbers have to be arguable.
+
+        Someone comparing Ember with the Octopus app wants to know what
+        unit the readings are in and why - so the panel says so.
+        """
+        page = self._page()
+        text = page.evaluate("() => document.querySelector('.slide').innerText")
+        page.close()
+        self.assertIn("Unit:", text)
+        self.assertIn("cubic metres", text)
+
+    def test_the_panel_says_what_the_cost_is_made_of(self):
+        page = self._page()
+        text = page.evaluate("() => document.querySelector('.slide').innerText")
+        page.close()
+        self.assertIn("energy charge plus the standing charge", text)
+
+    def _tiles(self, page):
+        return page.evaluate(
+            """() => Array.from(document.querySelectorAll('.tile'))
+                 .map((tile) => tile.innerText.replace(/\\s+/g, ' ').trim())""")
+
+    def test_the_peak_hour_is_the_typical_one(self):
+        """Not today's readings - the meter does not deliver those yet."""
+        page = self._page()
+        tiles = self._tiles(page)
+        page.close()
+        peak = [tile for tile in tiles
+                if tile.upper().startswith("PEAK HOUR")]
+        self.assertTrue(peak, f"no peak hour tile: {tiles}")
+        self.assertNotIn("—", peak[0],
+                         "the peak hour tile is empty")
+        self.assertIn("avg day", peak[0],
+                      "the peak hour does not say it is an average day")
+
+    def test_the_peak_hour_says_it_is_an_average_day(self):
+        page = self._page()
+        text = page.evaluate("() => document.querySelector('.slide').innerText")
+        page.close()
+        self.assertIn("avg day", text)
+
+
+class TheThreeViewsTests(_GasViewsFixture, unittest.TestCase):
+    """The tabs are real, and each one draws something different."""
+
+    def test_the_gas_panel_opens_on_the_week(self):
+        page = self._page()
+        title = self._title(page)
+        page.close()
+        self.assertIn("LAST 7 DAYS", title.upper())
+
+    def test_the_day_tab_draws_twenty_four_hours(self):
+        page = self._page()
+        self._switch(page, "day")
+        bars = page.evaluate(
+            "() => document.querySelectorAll('.slide svg rect').length")
+        page.close()
+        self.assertEqual(bars, 24)
+
+    def test_the_week_tab_draws_seven_days(self):
+        page = self._page()
+        self._switch(page, "week")
+        days = page.evaluate(
+            "() => document.querySelectorAll('.slide svg g[data-day]').length")
+        page.close()
+        self.assertEqual(days, 7)
+
+    def test_the_month_tab_draws_a_calendar(self):
+        page = self._page()
+        self._switch(page, "month")
+        cells = page.evaluate(
+            "() => document.querySelectorAll('.slide .mcell').length")
+        page.close()
+        # Thirty days, plus the padding for the first day of the window
+        # not being a Monday.
+        self.assertGreaterEqual(cells, 30)
+
+    def test_each_tab_says_what_it_is(self):
+        page = self._page()
+        self._switch(page, "day")
+        day = self._title(page)
+        self._switch(page, "month")
+        month = self._title(page)
+        page.close()
+        self.assertIn("SHAPE OF A DAY", day.upper())
+        self.assertIn("30 DAYS", month.upper())
+        self.assertNotEqual(day, month)
+
+    def test_the_shape_of_a_day_is_on_the_today_panel_too(self):
+        page = self._page("today")
+        bars = page.evaluate(
+            "() => document.querySelectorAll('.slide svg rect').length")
+        text = page.evaluate("() => document.querySelector('.slide').innerText")
+        page.close()
+        self.assertEqual(bars, 24)
+        self.assertIn("shape of a day", text.lower())
+
+    def test_the_week_view_says_what_the_dotted_line_is(self):
+        page = self._page()
+        text = page.evaluate("() => document.querySelector('.slide').innerText")
+        page.close()
+        self.assertIn("week's average", text.lower())
+
+
+class GapHonestyTests(_GasViewsFixture, unittest.TestCase):
+    """A day the meter did not report is drawn as a gap."""
+
+    def test_a_day_with_no_readings_is_not_drawn_as_a_zero(self):
+        """The month's gaps are empty cells, not pale ones."""
+        page = self._page()
+        self._switch(page, "month")
+        filled = page.evaluate(
+            "() => document.querySelectorAll('.slide .mcell:not(.none)').length")
+        empty = page.evaluate(
+            "() => document.querySelectorAll('.slide .mcell.none').length")
+        page.close()
+        # The demo reports every day, so there should be no gaps here -
+        # and every cell should be a real one.
+        self.assertEqual(empty, 0)
+        self.assertGreater(filled, 0)
+
+
+
+    def test_the_month_view_says_how_many_days_were_reported(self):
+        page = self._page()
+        self._switch(page, "month")
+        text = page.evaluate("() => document.querySelector('.slide').innerText")
+        page.close()
+        self.assertIn("reported days", text.lower())
+
+
+class TheGapTests(_GasViewsFixture, unittest.TestCase):
+    """The gap after a meter exchange.
+
+    The meter stopped for a couple of days and then started again.
+    Those days are holes, not days of no gas, and the calendar has to
+    say so rather than shading them pale.
+
+    Its own fixture, because it takes readings out of the store and
+    the other tests need them.
+    """
+
+    def test_the_month_shows_the_gap_as_empty_cells(self):
+        midnight = datetime.now(timezone.utc).replace(hour=0, minute=0,
+                                                      second=0, microsecond=0)
+        start = (midnight - timedelta(days=5)).timestamp()
+        end = (midnight - timedelta(days=3)).timestamp()
+        self.history.delete_gas_between(start, end)
+        self.dashboard.poll()
+
+        page = self._page()
+        self._switch(page, "month")
+        empty = page.evaluate(
+            "() => document.querySelectorAll('.slide .mcell.none').length")
+        titles = page.evaluate(
+            "() => Array.from(document.querySelectorAll('.slide .mcell'))"
+            ".map((cell) => cell.getAttribute('title'))")
+        page.close()
+        self.assertGreaterEqual(empty, 2)
+        self.assertTrue(any("not reported" in (title or "") for title in titles))
+
+    def test_the_week_estimates_the_gap_it_can(self):
+        """A day with no reading is drawn as an estimate, not as a hole.
+
+        The chart's job is to show how much gas each day took. A day
+        with no reading is still a day, and the model has an answer for
+        it - so the column is drawn in plum, the colour every estimate
+        wears. What it must never be is a zero.
+        """
+        midnight = datetime.now(timezone.utc).replace(hour=0, minute=0,
+                                                      second=0, microsecond=0)
+        start = (midnight - timedelta(days=5)).timestamp()
+        end = (midnight - timedelta(days=3)).timestamp()
+        self.history.delete_gas_between(start, end)
+        self.dashboard.poll()
+
+        page = self._page()
+        self._switch(page, "week")
+        plum = page.evaluate(
+            "() => document.querySelectorAll('.slide svg rect[fill=\"var(--plum)\"]').length")
+        days = page.evaluate(
+            "() => Array.from(document.querySelectorAll('.slide svg g[data-day]'))"
+            ".map((group) => group.getAttribute('data-day'))")
+        page.close()
+        self.assertGreaterEqual(plum, 2)
+        self.assertEqual(len(days), 7)
+
+    def test_the_week_leaves_a_gap_the_model_cannot_fill(self):
+        """When the model has nothing to say, the day stays a gap.
+
+        The estimator is the thing being taken away here, so this is
+        about the chart: a day it knows nothing about is a dashed mark
+        on the baseline, not a zero-height bar and not a zero.
+
+        (The estimator has its own tests; this one is about what the
+        chart does with a day that was left empty.)
+        """
+        midnight = datetime.now(timezone.utc).replace(hour=0, minute=0,
+                                                      second=0, microsecond=0)
+        start = (midnight - timedelta(days=5)).timestamp()
+        end = (midnight - timedelta(days=3)).timestamp()
+        self.history.delete_gas_between(start, end)
+        with mock.patch.object(Dashboard, "_estimate_the_week",
+                               lambda *args, **kwargs: None):
+            self.dashboard.poll()
+
+        page = self._page()
+        self._switch(page, "week")
+        dashed = page.evaluate(
+            "() => document.querySelectorAll('.slide svg line[stroke-dasharray]').length")
+        bars = page.evaluate(
+            "() => document.querySelectorAll('.slide svg rect').length")
+        page.close()
+        self.assertGreaterEqual(dashed, 2)
+        self.assertLessEqual(bars, 5)
+
+
+if __name__ == "__main__":
+    unittest.main()

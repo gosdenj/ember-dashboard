@@ -1,0 +1,37 @@
+# The settings file holds the Hive password and the Octopus API key in
+# plain text. It is written with 0600 permissions and must never be
+# committed.
+settings.json
+settings.json.tmp
+
+# The Hive session: a live credential for the Hive account. It must
+# never be committed either.
+hive-session.json
+
+# The history database - the gas readings and the heating polls the
+# dashboard is built on. It is written by the running dashboard.
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# The Docker setup keeps the data in ./data, which is mounted into the
+# container. Everything in that directory is live settings and history,
+# so none of it may be committed.
+data/
+
+# Machine-specific Docker settings (the port, the uid to run as).
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

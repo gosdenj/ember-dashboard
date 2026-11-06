@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ember — design proposals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#f7f5f0; --card:#ffffff; --line:#e9e3d6;
+  --ink:#14171e; --ink-2:#3a4256; --ink-3:#7c7a72;
+  --accent:#c97b3f; --accent-2:#2f6f5e; --accent-3:#b06367;
+  --sans:'Outfit',sans-serif; --mono:'JetBrains Mono',monospace; --serif:'DM Serif Display',serif;
+  --radius:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+.page{max-width:1080px;margin:0 auto;padding:64px 28px 96px}
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+h1{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1.08;margin:12px 0 0;letter-spacing:-.01em}
+h2{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.15;margin:0}
+h3{font-size:17px;font-weight:600;margin:0;letter-spacing:-.01em}
+.lede{font-size:18px;line-height:1.6;color:var(--ink-2);max-width:66ch;margin:18px 0 0}
+hr.rule{border:0;border-top:1px solid var(--line);margin:0}
+section{margin-top:72px}
+.sec-head{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin-bottom:8px}
+.sec-head .n{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em}
+.sec-note{color:var(--ink-2);font-size:15.5px;line-height:1.62;max-width:72ch;margin:10px 0 30px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.pad{padding:26px 28px}
+.tag{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2);background:#fbfaf7}
+.tag.rec{border-color:rgba(201,123,63,.4);background:rgba(201,123,63,.09);color:#8f5426}
+.tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.tag.chosen{border-color:rgba(47,111,94,.45);background:rgba(47,111,94,.1);color:#2f6f5e}
+.tag.chosen .dot{background:var(--accent-2)}
+.tag.recommended{border-color:rgba(239,138,74,.5);background:rgba(239,138,74,.12);color:#c9703a}
+.tag.recommended .dot{background:var(--ember,#ef8a4a)}
+.opt.chosen{border-color:rgba(47,111,94,.5);box-shadow:0 0 0 3px rgba(47,111,94,.08)}
+.shot{position:relative;border-radius:14px;overflow:hidden;border:1px solid #1b2129;
+  box-shadow:0 18px 44px -18px rgba(20,23,30,.45),0 2px 6px rgba(20,23,30,.12)}
+.shot img{display:block;width:100%;height:auto}
+.cap{display:flex;gap:14px;align-items:baseline;margin-top:14px;flex-wrap:wrap}
+.cap .t{font-weight:600;font-size:15px}
+.cap .d{color:var(--ink-2);font-size:14px;line-height:1.5;flex:1 1 320px}
+.stack{display:flex;flex-direction:column;gap:34px}
+.opt{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.04);display:grid;grid-template-columns:340px 1fr}
+.opt .thumb{background:#0e1116;padding:18px;display:flex;align-items:center;justify-content:center;border-right:1px solid var(--line)}
+.opt .body{padding:22px 24px}
+.opt .body p{color:var(--ink-2);font-size:14.5px;line-height:1.6;margin:10px 0 0}
+.opt h3{display:flex;align-items:center;gap:10px}
+.sw{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.swatch{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+.swatch .chip{height:92px}
+.swatch .meta{padding:12px 14px}
+.swatch .nm{font-weight:600;font-size:13.5px;font-family:var(--mono)}
+.swatch .hx{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:3px}
+.swatch .us{font-size:12.5px;color:var(--ink-2);margin-top:7px;line-height:1.45}
+.type-row{display:flex;align-items:baseline;gap:18px;padding:14px 0;border-bottom:1px dashed var(--line)}
+.type-row:last-child{border-bottom:0}
+.type-row .spec{font-family:var(--mono);font-size:12px;color:var(--ink-3);width:190px;flex:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.bench{display:grid;grid-template-columns:150px 1fr 74px;gap:14px;align-items:center;padding:7px 0}
+.bench .label{font-size:13.5px;color:var(--ink-2)}
+.bench .bar-bg{height:18px;background:#efeadf;border-radius:6px;overflow:hidden}
+.bench .bar-fill{height:100%;border-radius:6px}
+.bench .val{font-family:var(--mono);font-size:12.5px;text-align:right}
+.decision{display:flex;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.decision:last-child{border-bottom:0}
+.decision .num{font-family:var(--mono);font-size:12px;color:var(--accent);padding-top:3px;flex:none;width:22px}
+.decision .q{font-weight:600;font-size:15.5px}
+.decision .a{color:var(--ink-2);font-size:14.5px;line-height:1.6;margin-top:5px}
+.decision .pick{display:inline-flex;align-items:center;gap:6px;margin-top:9px;font-size:12px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:#8f5426;background:rgba(201,123,63,.1);
+  border:1px solid rgba(201,123,63,.32);border-radius:999px;padding:4px 10px}
+footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--line);color:var(--ink-3);font-size:13.5px;line-height:1.6}
+@media (max-width:900px){
+  .page{padding:40px 18px 64px}
+  h1{font-size:34px}
+  .opt{grid-template-columns:1fr}
+  .opt .thumb{border-right:0;border-bottom:1px solid var(--line)}
+  .grid2{grid-template-columns:1fr}
+  .sw{grid-template-columns:repeat(2,1fr)}
+  .type-row{flex-direction:column;gap:4px}
+  .type-row .spec{width:auto}
+}
+
+/* =======================================================================
+   THE DASHBOARD ITSELF — dark kiosk UI
+   ======================================================================= */
+.e{
+  --bg:#0e1116; --panel:#151a21; --panel-2:#1a2029; --line:rgba(255,255,255,.075);
+  --ink:#e8edf2; --dim:#8a94a3; --dimmer:#5d6874;
+  --ember:#ef8a4a; --ember-soft:rgba(239,138,74,.15);
+  --teal:#2fb89a; --teal-soft:rgba(47,184,154,.14);
+  --ice:#5aa9e6; --ice-soft:rgba(90,169,230,.14);
+  --plum:#b07ad6; --plum-soft:rgba(176,122,214,.14);
+  background:var(--bg);color:var(--ink);font-family:var(--sans);
+  width:800px;height:480px;display:flex;flex-direction:column;overflow:hidden;
+  font-size:13px;
+}
+.e *{box-sizing:border-box}
+.e-head{display:flex;align-items:center;gap:10px;padding:0 14px;height:42px;flex:none;
+  border-bottom:1px solid var(--line);background:linear-gradient(180deg,#141920,#11161d)}
+.e-head .brand{font-weight:700;letter-spacing:.14em;font-size:12px;color:var(--ink)}
+.e-head .mark{width:9px;height:9px;border-radius:50%;background:var(--ember);
+  box-shadow:0 0 0 3px var(--ember-soft);margin-right:7px}
+.e-head .sub{font-size:11.5px;color:var(--dim);letter-spacing:.02em}
+.e-head .spacer{flex:1}
+.pill{font-family:var(--mono);font-size:10.5px;padding:3px 8px;border-radius:6px;
+  border:1px solid var(--line);color:var(--dim);background:rgba(255,255,255,.02)}
+.pill.live{color:var(--teal);border-color:rgba(47,184,154,.35);background:var(--teal-soft);
+  display:inline-flex;align-items:center;gap:5px}
+.pill.live i{width:5px;height:5px;border-radius:50%;background:var(--teal);display:block}
+.pill.clock{color:var(--ink);border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.05)}
+.e-head svg{color:var(--dimmer)}
+.e-body{flex:1;display:grid;grid-template-columns:1fr 292px;gap:9px;padding:9px;min-height:0}
+.e-body.s2,.e-body.s3{grid-template-rows:1fr auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 12px;
+  display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.p-h{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex:none}
+.p-h h4{font-size:10px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin:0}
+.p-h .src{font-size:9.5px;color:var(--dimmer);margin-left:auto;font-style:italic}
+.p-h .tabs{margin-left:auto;display:flex;gap:3px}
+.p-h .tabs span{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:4px;color:var(--dimmer);
+  border:1px solid transparent}
+.p-h .tabs span.on{color:var(--ink);background:rgba(255,255,255,.06);border-color:var(--line)}
+.kpi{font-family:var(--mono);font-weight:600;letter-spacing:-.02em;line-height:1}
+.kpi .u{font-size:.46em;color:var(--dim);font-weight:400;margin-left:3px;letter-spacing:0}
+.rows{display:flex;flex-direction:column;gap:0;min-height:0;overflow:hidden}
+.row{display:flex;align-items:center;gap:8px;padding:5.5px 0;border-bottom:1px solid rgba(255,255,255,.045)}
+.row:last-child{border-bottom:0}
+.row .nm{flex:1;font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rows .row{padding:3.5px 0}
+.rows .row .nm{font-size:11.5px}
+.rows .row .t{font-size:11.5px}
+.row .nm small{display:block;color:var(--dimmer);font-size:9.5px;margin-top:1px}
+.row .t{font-family:var(--mono);font-size:12px;color:var(--ink)}
+.row .t small{color:var(--dimmer);font-size:9.5px}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.valve{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;padding:2px 6px;border-radius:4px;flex:none}
+.valve.open{color:var(--ember);background:var(--ember-soft)}
+.valve.shut{color:var(--dimmer);background:rgba(255,255,255,.04)}
+.row .nm .cnt{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dimmer);margin-left:5px}
+.tiles{display:grid;gap:8px}
+.tile{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:9px 10px;min-width:0}
+.tile .k{font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--dimmer);
+  display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.tile .k i{width:5px;height:5px;border-radius:50%;display:block}
+.tile .v{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.03em;line-height:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .v small{font-size:10px;color:var(--dim);font-weight:400;margin-left:2px}
+.tile .s{font-size:9.5px;color:var(--dimmer);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile.room{padding:7px 9px}
+.tile.room .k{font-size:8.5px;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;gap:4px}
+.tile.room .v{font-size:16px;margin-top:3px}
+.tile.room .s{font-size:9px;margin-top:3px}
+.tile.room .k i{width:4px;height:4px}
+.big{display:flex;align-items:baseline;gap:10px}
+.big .kpi{font-size:34px}
+.big .side{margin-left:auto;text-align:right}
+.big .side .k{font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--dimmer)}
+.big .side .v{font-family:var(--mono);font-size:14px;margin-top:3px}
+.ember{color:var(--ember)} .teal{color:var(--teal)} .ice{color:var(--ice)} .plum{color:var(--plum)}
+.dim{color:var(--dim)} .dimmer{color:var(--dimmer)}
+.state{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:3px 8px;border-radius:5px;
+  background:var(--ember-soft);color:var(--ember);font-weight:500}
+.state.off{background:rgba(255,255,255,.05);color:var(--dim)}
+@keyframes flow{to{stroke-dashoffset:-24}}
+.flowline{stroke-dasharray:3 7;animation:flow 1.1s linear infinite}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.45}}
+.breathe{animation:breathe 2.4s ease-in-out infinite}
+.dashline{stroke-dasharray:2 6;stroke:rgba(255,255,255,.17)}
+.svgwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.legend{display:flex;gap:12px;font-size:9.5px;color:var(--dim);margin-top:6px;flex:none;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:8px;height:8px;border-radius:2px;display:block}
+.s3grid{display:grid;grid-template-columns:1fr 292px;gap:9px;padding:9px;min-height:0;flex:1}
+.fnote{font-size:10.5px;color:var(--dim);line-height:1.5;margin-top:9px}
+.fnote b{color:var(--ink);font-weight:500}
+.foot{font-size:9.5px;color:var(--dimmer);font-style:italic;margin-top:auto;padding-top:6px}
+
+/* scaled preview */
+.preview{display:block}
+.scale{width:340px;height:210px;overflow:hidden;position:relative}
+.scale > .e{transform:scale(.425);transform-origin:top left}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Ember · design proposals · 4 November 2026</div>
+    <h1>A dashboard for heat and gas</h1>
+    <p class="lede">Three screens, drawn to the 7&#8243; panel and sized for desktop and phone.
+      Below them, the two pieces I was least sure about — the heating diagram and the gas chart —
+      as options. <strong>Rings</strong> and <strong>bars</strong> were chosen, and the build is
+      running.</p>
+  </header>
+
+  <section>
+    <div class="sec-head"><span class="n">01</span><h2>The three screens</h2></div>
+    <p class="sec-note">Rendered at the real 800&times;480 target. The numbers are invented but
+      plausible; the layout is the proposal. Every figure carries the same discipline as the
+      FoxESS dashboard: <em>the panel says where the number came from</em>.</p>
+    <div class="stack">
+
+      <div>
+        <div class="shot">
+          <div class="e" id="slide1">
+            <div class="e-head">
+              <span class="brand"><span class="mark"></span>EMBER</span>
+              <span class="sub">Home &middot; Hive thermostat</span>
+              <span class="spacer"></span>
+              <span class="pill live"><i></i>LIVE</span>
+              <span class="pill clock">Fri 6 Nov &middot; 21:14</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </div>
+            <div class="e-body">
+              <div class="panel">
+                <div class="p-h"><h4>Heating now</h4><span class="src">from Hive</span></div>
+                <div class="svgwrap">
+                  <svg viewBox="0 0 470 250" width="100%" height="100%" style="max-height:100%">
+                    <line class="dashline" x1="235" y1="102" x2="58" y2="50"/>
+                    <line class="dashline" x1="235" y1="102" x2="412" y2="50"/>
+                    <line class="dashline" x1="235" y1="102" x2="235" y2="194"/>
+                    <line x1="235" y1="102" x2="58" y2="50" stroke="var(--ember)" stroke-width="1.6" stroke-opacity=".55" class="flowline"/>
+
+                    <!-- hub: home, ring filling toward the target -->
+                    <circle cx="235" cy="102" r="40" fill="#11161d" stroke="rgba(255,255,255,.08)" stroke-width="6"/>
+                    <circle cx="235" cy="102" r="40" fill="none" stroke="var(--ember)" stroke-width="6"
+                            stroke-linecap="round" transform="rotate(-90 235 102)"
+                            stroke-dasharray="220 251"/>
+                    <text x="235" y="100" text-anchor="middle" fill="var(--ink)"
+                          font-family="JetBrains Mono,monospace" font-size="25" font-weight="600">19.5°</text>
+                    <text x="235" y="117" text-anchor="middle" fill="var(--dim)"
+                          font-family="Outfit,sans-serif" font-size="10" letter-spacing="1.6">HOME</text>
+
+                    <!-- boiler -->
+                    <circle cx="58" cy="50" r="27" fill="#11161d" stroke="var(--ember)" stroke-width="2.4"/>
+                    <path d="M58 39c3.6 4.5 5.4 7.2 5.4 9.9a5.4 5.4 0 0 1-10.8 0c0-2.7 1.8-5.4 5.4-9.9z" fill="var(--ember)"/>
+                    <text x="58" y="70" text-anchor="middle" fill="var(--ember)"
+                          font-family="JetBrains Mono,monospace" font-size="9.5" font-weight="600">FIRING</text>
+                    <text x="58" y="94" text-anchor="middle" fill="var(--dim)"
+                          font-family="Outfit,sans-serif" font-size="9.5" letter-spacing="1.4">BOILER</text>
+
+                    <!-- outside -->
+                    <circle cx="412" cy="50" r="27" fill="#11161d" stroke="var(--ice)" stroke-width="2.4"/>
+                    <text x="412" y="56" text-anchor="middle" fill="var(--ice)"
+                          font-family="JetBrains Mono,monospace" font-size="13" font-weight="600">4.2°</text>
+                    <text x="412" y="94" text-anchor="middle" fill="var(--dim)"
+                          font-family="Outfit,sans-serif" font-size="9.5" letter-spacing="1.4">OUTSIDE</text>
+
+                    <!-- boost -->
+                    <circle cx="235" cy="194" r="25" fill="#11161d" stroke="rgba(255,255,255,.18)" stroke-width="2.4"/>
+                    <text x="235" y="199" text-anchor="middle" fill="var(--ink)"
+                          font-family="JetBrains Mono,monospace" font-size="11.5" font-weight="600">30m</text>
+                    <text x="235" y="236" text-anchor="middle" fill="var(--dim)"
+                          font-family="Outfit,sans-serif" font-size="9.5" letter-spacing="1.4">BOOST</text>
+                  </svg>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="p-h"><h4>Status</h4></div>
+                <div class="big">
+                  <div>
+                    <div class="kpi">19.5<span class="u">°C</span></div>
+                    <div class="dimmer" style="font-size:10.5px;margin-top:5px">target 20.0°C &middot; inside</div>
+                  </div>
+                  <div class="side" style="text-align:right"><span class="state"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-5 0 2 1 3 2 3 1-2 0-5 1-9z"/></svg>Heating</span></div>
+                </div>
+                <div class="rows" style="margin-top:12px">
+                  <div class="row"><span class="nm">Heating today</span><span class="t">6h 20m</span></div>
+                  <div class="row"><span class="nm">Heating this week</span><span class="t">44h 25m</span></div>
+                  <div class="row"><span class="nm">Boost</span><span class="t">until 21:45</span></div>
+                  <div class="row"><span class="nm">Next schedule block</span><span class="t">22:30</span></div>
+                </div>
+                <div class="foot">Boiler state and every TRV come from Hive. No writing back.</div>
+              </div>
+              <div class="panel" style="grid-column:1/-1">
+                <div class="p-h"><h4>Rooms &middot; radiator valves</h4><span class="src">from Hive</span></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 26px">
+                  <div class="rows"><div class="row"><span class="nm">Dining Room</span><span class="t">19.2&deg;</span><span class="t dimmer">&rarr; 20.0</span><span class="valve open">on</span></div><div class="row"><span class="nm">Downstairs Hallway<span class="cnt">&times;2</span></span><span class="t">18.6&deg;</span><span class="t dimmer">&rarr; 19.0</span><span class="valve open">on</span></div><div class="row"><span class="nm">Kitchen<span class="cnt">&times;2</span></span><span class="t">20.3&deg;</span><span class="t dimmer">&rarr; 20.0</span><span class="valve shut">off</span></div><div class="row"><span class="nm">Loft Room</span><span class="t">18.4&deg;</span><span class="t dimmer">&rarr; 18.0</span><span class="valve shut">off</span></div><div class="row"><span class="nm">Lounge<span class="cnt">&times;2</span></span><span class="t">19.6&deg;</span><span class="t dimmer">&rarr; 19.0</span><span class="valve shut">off</span></div></div>
+                  <div class="rows"><div class="row"><span class="nm">Master Bedroom</span><span class="t">19.1&deg;</span><span class="t dimmer">&rarr; 19.5</span><span class="valve open">on</span></div><div class="row"><span class="nm">Matteo Bedroom</span><span class="t">18.2&deg;</span><span class="t dimmer">&rarr; 18.0</span><span class="valve shut">off</span></div><div class="row"><span class="nm">Sofia Bedroom</span><span class="t">16.9&deg;</span><span class="t dimmer">&rarr; 17.5</span><span class="valve open">on</span></div><div class="row"><span class="nm">Upstairs Hallway</span><span class="t">19.2&deg;</span><span class="t dimmer">&rarr; 19.0</span><span class="valve shut">off</span></div><div class="row"><span class="nm" style="color:var(--dim)">Rooms asking for heat</span><span class="t ember">4 of 9</span><span class="t dimmer">12 valves</span></div></div>
+                </div>
+                <div class="foot">On means the room is below its target and asking for heat. Hive does not say whether the valve itself is open.</div>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">
+          <span class="t">Heating</span>
+          <span class="d">The hub is your home. The rings around it are the boiler, the outside temperature,
+            the boiler, the outside temperature and the boost — they light up only when they are
+            actually doing something.
+            Every TRV gets its own tile, because which room is asking for heat is the question
+            you actually want answered.</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="shot">
+          <div class="e" id="slide2">
+            <div class="e-head">
+              <span class="brand"><span class="mark"></span>EMBER</span>
+              <span class="sub">Home &middot; Octopus gas</span>
+              <span class="spacer"></span>
+              <span class="pill live"><i></i>LIVE</span>
+              <span class="pill clock">Fri 6 Nov &middot; 21:14</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </div>
+            <div class="e-body s2">
+              <div class="panel">
+                <div class="p-h"><h4>Gas &middot; last 24 hours</h4>
+                  <span class="tabs"><span class="on">24H</span><span>7D</span><span>30D</span></span></div>
+                <div class="svgwrap">
+                  <svg viewBox="0 0 470 190" width="100%" height="100%" style="max-height:100%">
+                    <g fill="var(--teal)">
+                      <rect x="12"  y="150" width="9" height="18" rx="2" opacity=".75"/>
+                      <rect x="31"  y="140" width="9" height="28" rx="2" opacity=".75"/>
+                      <rect x="50"  y="128" width="9" height="40" rx="2" opacity=".75"/>
+                      <rect x="69"  y="118" width="9" height="50" rx="2" opacity=".75"/>
+                      <rect x="88"  y="104" width="9" height="64" rx="2" opacity=".75"/>
+                      <rect x="107" y="92"  width="9" height="76" rx="2" opacity=".75"/>
+                      <rect x="126" y="80"  width="9" height="88" rx="2" opacity=".75"/>
+                      <rect x="145" y="66"  width="9" height="102" rx="2" opacity=".75"/>
+                      <rect x="164" y="54"  width="9" height="114" rx="2" opacity=".75"/>
+                      <rect x="183" y="44"  width="9" height="124" rx="2" opacity=".75"/>
+                      <rect x="202" y="50"  width="9" height="118" rx="2" opacity=".75"/>
+                      <rect x="221" y="62"  width="9" height="106" rx="2" opacity=".75"/>
+                      <rect x="240" y="76"  width="9" height="92" rx="2" opacity=".75"/>
+                      <rect x="259" y="94"  width="9" height="74" rx="2" opacity=".75"/>
+                      <rect x="278" y="112" width="9" height="56" rx="2" opacity=".75"/>
+                      <rect x="297" y="126" width="9" height="42" rx="2" opacity=".75"/>
+                      <rect x="316" y="134" width="9" height="34" rx="2" opacity=".75"/>
+                      <rect x="335" y="120" width="9" height="48" rx="2" opacity=".85"/>
+                      <rect x="354" y="100" width="9" height="68" rx="2" opacity=".85"/>
+                      <rect x="373" y="78"  width="9" height="90" rx="2" opacity=".85"/>
+                      <rect x="392" y="46"  width="9" height="122" rx="2" fill="var(--ember)"/>
+                      <rect x="411" y="58"  width="9" height="110" rx="2" opacity=".6"/>
+                      <rect x="430" y="72"  width="9" height="96" rx="2" opacity=".5"/>
+                      <rect x="449" y="86"  width="9" height="82" rx="2" opacity=".3"/>
+                    </g>
+                    <line x1="8" y1="168" x2="462" y2="168" stroke="rgba(255,255,255,.12)"/>
+                    <g fill="var(--dimmer)" font-size="9" font-family="Outfit,sans-serif">
+                      <text x="12" y="183">00:00</text>
+                      <text x="180" y="183">12:00</text>
+                      <text x="352" y="183">18:00</text>
+                      <text x="430" y="183">now</text>
+                    </g>
+                    <text x="400" y="38" fill="var(--ember)" font-size="9.5" font-family="Outfit,sans-serif">peak 19:00</text>
+                    <text x="16" y="22" fill="var(--dimmer)" font-size="9.5" font-family="Outfit,sans-serif">m³ per hour</text>
+                  </svg>
+                </div>
+                <div class="legend">
+                  <span><i style="background:var(--teal)"></i>gas used</span>
+                  <span><i style="background:var(--ember)"></i>peak hour</span>
+                  <span><i style="background:rgba(47,184,154,.35)"></i>reading still provisional</span>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="p-h"><h4>Today</h4><span class="src">from your Octopus meter</span></div>
+                <div class="kpi" style="font-size:34px">1.84<span class="u">m³</span></div>
+                <div class="dimmer" style="font-size:10.5px;margin-top:5px">20.5 kWh &middot; at 11.16 kWh/m³</div>
+                <div class="rows" style="margin-top:11px">
+                  <div class="row"><span class="nm">Cost today</span><span class="t">£1.44</span></div>
+                  <div class="row"><span class="nm">Energy</span><span class="t">115.6p</span></div>
+                  <div class="row"><span class="nm">Standing charge</span><span class="t">28.8p</span></div>
+                  <div class="row"><span class="nm">Unit rate</span><span class="t">5.63p<small>/kWh</small></span></div>
+                </div>
+                <div class="foot">Rates are from Octopus for the window they apply to.</div>
+              </div>
+              <div class="panel" style="grid-column:1/-1">
+                <div class="p-h"><h4>Today at a glance</h4></div>
+                <div class="tiles" style="grid-template-columns:repeat(6,1fr)">
+                  <div class="tile"><div class="k"><i style="background:var(--teal)"></i>Gas today</div><div class="v">1.84<small>m³</small></div><div class="s">20.5 kWh</div></div>
+                  <div class="tile"><div class="k"><i style="background:var(--teal)"></i>Cost</div><div class="v">£1.44</div><div class="s">incl. standing</div></div>
+                  <div class="tile"><div class="k"><i style="background:var(--ice)"></i>7-day average</div><div class="v">2.10<small>m³</small></div><div class="s">23.4 kWh</div></div>
+                  <div class="tile"><div class="k"><i style="background:var(--ember)"></i>vs average</div><div class="v">−12<small>%</small></div><div class="s">a mild day</div></div>
+                  <div class="tile"><div class="k"><i style="background:var(--dimmer)"></i>Peak hour</div><div class="v">19:00</div><div class="s">0.41 m³</div></div>
+                  <div class="tile"><div class="k"><i style="background:var(--teal)"></i>Month budget</div><div class="v">£24.60</div><div class="s">of £60 · 41%</div>
+                    <div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:11px"><div style="height:4px;border-radius:2px;background:var(--teal);width:41%"></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">
+          <span class="t">Gas</span>
+          <span class="d">Cubic metres first, because that is what your meter reports. kWh and money
+            are derived and labelled as such. The newest bars are marked provisional, because gas
+            readings arrive hours later than the clock says.</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="shot">
+          <div class="e" id="slide3">
+            <div class="e-head">
+              <span class="brand"><span class="mark"></span>EMBER</span>
+              <span class="sub">Home &middot; today</span>
+              <span class="spacer"></span>
+              <span class="pill live"><i></i>LIVE</span>
+              <span class="pill clock">Fri 6 Nov &middot; 21:14</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </div>
+            <div class="s3grid">
+              <div class="panel">
+                <div class="p-h"><h4>Today</h4><span class="src">gas from your Octopus meter &middot; heat from Hive</span></div>
+                <div class="big">
+                  <div>
+                    <div class="kpi" style="font-size:44px">1.84<span class="u">m³</span></div>
+                    <div class="dimmer" style="font-size:11px;margin-top:6px">£1.44 so far &middot; 6h 20m of heating</div>
+                  </div>
+                  <div class="side">
+                    <div class="k">vs 7-day average</div>
+                    <div class="v ember">−12%</div>
+                    <div class="k" style="margin-top:11px">month budget</div>
+                    <div class="v">£24.60<span style="color:var(--dimmer);font-size:10px"> of £60</span></div>
+                  </div>
+                </div>
+                <div class="svgwrap" style="margin-top:8px">
+                  <svg viewBox="0 0 470 120" width="100%" height="100%" style="max-height:100%">
+                    <g fill="var(--teal)">
+                      <rect x="14"  y="97" width="16" height="13" rx="3" opacity=".55"/>
+                      <rect x="54"  y="100" width="16" height="10" rx="3" opacity=".5"/>
+                      <rect x="94"  y="102" width="16" height="8" rx="3" opacity=".5"/>
+                      <rect x="134" y="75" width="16" height="35" rx="3" opacity=".8"/>
+                      <rect x="174" y="62" width="16" height="48" rx="3" opacity=".8"/>
+                      <rect x="214" y="88" width="16" height="22" rx="3" opacity=".7"/>
+                      <rect x="254" y="96" width="16" height="14" rx="3" opacity=".65"/>
+                      <rect x="294" y="97" width="16" height="13" rx="3" opacity=".65"/>
+                      <rect x="334" y="84" width="16" height="26" rx="3" opacity=".8"/>
+                      <rect x="374" y="46" width="16" height="64" rx="3" fill="var(--ember)"/>
+                      <rect x="414" y="68" width="16" height="42" rx="3" opacity=".45"/>
+                    </g>
+                    <line x1="10" y1="110" x2="462" y2="110" stroke="rgba(255,255,255,.12)"/>
+                    <g fill="var(--dimmer)" font-size="9" font-family="Outfit,sans-serif">
+                      <text x="14" y="20">00:00</text>
+                      <text x="196" y="20">08:00</text>
+                      <text x="376" y="20">16:00</text>
+                      <text x="418" y="20">now</text>
+                    </g>
+                    <text x="300" y="36" fill="var(--dim)" font-size="10" font-family="Outfit,sans-serif">evening peak — boiler on since 16:40</text>
+                  </svg>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="p-h"><h4>Tomorrow</h4><span class="src">forecast</span></div>
+                <div class="kpi plum" style="font-size:34px">2.35<span class="u">m³</span></div>
+                <div class="dimmer" style="font-size:10.5px;margin-top:5px">26.2 kWh &middot; about £1.77</div>
+                <div class="fnote">
+                  <b>3.1°C</b> forecast &middot; <b>16.1</b> degree-days at a 16°C base<br>
+                  <span class="dimmer">Fitted on 21 days of your own readings.</span>
+                </div>
+                <div class="foot">A forecast, not a bill. The band is ±0.4 m³.</div>
+              </div>
+              <div class="panel" style="grid-column:1/-1">
+                <div class="p-h"><h4>The week</h4><span class="src">gas from your Octopus meter &middot; heat from Hive</span></div>
+                <div class="tiles" style="grid-template-columns:repeat(7,1fr)">
+                  <div class="tile"><div class="k">Mon</div><div class="v">2.42<small>m³</small></div><div class="s" style="color:var(--ember)">7h 10m heat</div><div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:11px"><div style="height:4px;border-radius:2px;background:var(--teal);width:93%"></div></div></div>
+                  <div class="tile"><div class="k">Tue</div><div class="v">2.28<small>m³</small></div><div class="s" style="color:var(--ember)">6h 40m heat</div><div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:11px"><div style="height:4px;border-radius:2px;background:var(--teal);width:88%"></div></div></div>
+                  <div class="tile"><div class="k">Wed</div><div class="v">1.96<small>m³</small></div><div class="s" style="color:var(--ember)">5h 20m heat</div><div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:11px"><div style="height:4px;border-radius:2px;background:var(--teal);width:75%"></div></div></div>
+                  <div class="tile"><div class="k">Thu</div><div class="v">1.74<small>m³</small></div><div class="s" style="color:var(--ember)">4h 50m heat</div><div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:11px"><div style="height:4px;border-radius:2px;background:var(--teal);width:67%"></div></div></div>
+                  <div class="tile"><div class="k">Fri</div><div class="v">2.10<small>m³</small></div><div class="s" style="color:var(--ember)">6h 05m heat</div><div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:11px"><div style="height:4px;border-radius:2px;background:var(--teal);width:81%"></div></div></div>
+                  <div class="tile"><div class="k">Sat</div><div class="v">2.61<small>m³</small></div><div class="s" style="color:var(--ember)">8h 00m heat</div><div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:11px"><div style="height:4px;border-radius:2px;background:var(--teal);width:100%"></div></div></div>
+                  <div class="tile" style="border-color:rgba(239,138,74,.4)"><div class="k">Sun</div><div class="v ember">1.84<small style="color:var(--dim)">m³</small></div><div class="s" style="color:var(--ember)">6h 20m &middot; today</div><div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:11px"><div style="height:4px;border-radius:2px;background:var(--ember);width:71%"></div></div></div>
+                  </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cap">
+          <span class="t">Today</span>
+          <span class="d">The two halves of the system side by side — what the gas cost, and what
+            the heating was doing. The forecast is the reason the dashboard exists: tomorrow's
+            gas, from tomorrow's weather, fitted on your own readings.</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">02</span><h2>The heating diagram</h2></div>
+    <p class="sec-note">This is the piece I am least sure about, so here are three ways to draw it.
+      All three carry the same information: the boiler, the outside temperature, the boost, and
+      the rooms.</p>
+
+    <div class="stack">
+
+      <div class="opt">
+        <div class="thumb">
+          <svg width="300" height="188" viewBox="0 0 300 188">
+            <line class="dashline" x1="150" y1="86" x2="46" y2="42"/>
+            <line class="dashline" x1="150" y1="86" x2="254" y2="42"/>
+            <line class="dashline" x1="150" y1="86" x2="150" y2="152"/>
+            <circle cx="150" cy="86" r="32" fill="#11161d" stroke="rgba(255,255,255,.08)" stroke-width="5"/>
+            <circle cx="150" cy="86" r="32" fill="none" stroke="#ef8a4a" stroke-width="5" stroke-linecap="round"
+                    transform="rotate(-90 150 86)" stroke-dasharray="176 201"/>
+            <text x="150" y="84" text-anchor="middle" fill="#e8edf2" font-family="JetBrains Mono,monospace" font-size="20" font-weight="600">19.5°</text>
+            <text x="150" y="99" text-anchor="middle" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="8.5" letter-spacing="1.3">HOME</text>
+            <circle cx="46" cy="42" r="21" fill="#11161d" stroke="#ef8a4a" stroke-width="2.2"/>
+            <text x="46" y="47" text-anchor="middle" fill="#ef8a4a" font-family="JetBrains Mono,monospace" font-size="9" font-weight="600">ON</text>
+            <text x="46" y="74" text-anchor="middle" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="8" letter-spacing="1.1">BOILER</text>
+            <circle cx="254" cy="42" r="21" fill="#11161d" stroke="#5aa9e6" stroke-width="2.2"/>
+            <text x="254" y="47" text-anchor="middle" fill="#5aa9e6" font-family="JetBrains Mono,monospace" font-size="11" font-weight="600">4.2°</text>
+            <text x="254" y="74" text-anchor="middle" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="8" letter-spacing="1.1">OUTSIDE</text>
+            <circle cx="150" cy="152" r="20" fill="#11161d" stroke="rgba(255,255,255,.2)" stroke-width="2.2"/>
+            <text x="150" y="157" text-anchor="middle" fill="#e8edf2" font-family="JetBrains Mono,monospace" font-size="9" font-weight="600">30m</text>
+            <text x="150" y="182" text-anchor="middle" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="8" letter-spacing="1.1">BOOST</text>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>A &nbsp;Rings <span class="tag chosen"><span class="dot"></span>Chosen</span></h3>
+          <p>Your home in the middle, everything else around it. The house is the hub; the ring
+            around it fills toward the target temperature. Siblings of the FoxESS dashboard, so it
+            will feel familiar, and it stays calm when the boiler is off — no animation, no flicker.</p>
+          <p>Costs the most SVG work, but it is the only one that scales down gracefully to a phone.</p>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="thumb">
+          <svg width="300" height="188" viewBox="0 0 300 188">
+            <path d="M60 84 L150 26 L240 84" fill="none" stroke="#3a4450" stroke-width="3" stroke-linejoin="round"/>
+            <rect x="60" y="84" width="180" height="78" fill="#131920" stroke="#3a4450" stroke-width="2.5" rx="3"/>
+            <rect x="68" y="92" width="52" height="32" fill="#ef8a4a" opacity=".18" rx="2"/>
+            <text x="94" y="112" text-anchor="middle" fill="#ef8a4a" font-family="JetBrains Mono,monospace" font-size="10" font-weight="600">21.0</text>
+            <rect x="126" y="92" width="50" height="32" fill="#5aa9e6" opacity=".16" rx="2"/>
+            <text x="151" y="112" text-anchor="middle" fill="#5aa9e6" font-family="JetBrains Mono,monospace" font-size="10" font-weight="600">19.4</text>
+            <rect x="182" y="92" width="50" height="32" fill="#5aa9e6" opacity=".13" rx="2"/>
+            <text x="207" y="112" text-anchor="middle" fill="#5aa9e6" font-family="JetBrains Mono,monospace" font-size="10" font-weight="600">18.1</text>
+            <rect x="68" y="130" width="164" height="24" fill="#b07ad6" opacity=".13" rx="2"/>
+            <text x="150" y="146" text-anchor="middle" fill="#b07ad6" font-family="JetBrains Mono,monospace" font-size="10" font-weight="600">18.2</text>
+            <rect x="212" y="138" width="20" height="18" fill="#ef8a4a" rx="2"/>
+            <circle cx="222" cy="147" r="4" fill="#151a21"/>
+            <text x="150" y="176" text-anchor="middle" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="8.5" letter-spacing="1.1">4.2° OUTSIDE</text>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>B &nbsp;House cutaway</h3>
+          <p>A plan of the house with each room shaded by warmth and the boiler glowing in the
+            corner. The most charming of the three, and the one that answers &ldquo;where in the
+            house is the heat?&rdquo; at a glance.</p>
+          <p>But it assumes a floor plan, and it is the hardest to make legible at 800&times;480
+            and hopeless on a phone. It would need a drawing, not just data.</p>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="thumb">
+          <svg width="300" height="188" viewBox="0 0 300 188">
+            <g>
+              <rect x="6" y="70" width="58" height="46" rx="8" fill="#131920" stroke="#5aa9e6" stroke-width="2"/>
+              <text x="35" y="90" text-anchor="middle" fill="#5aa9e6" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">4.2°</text>
+              <text x="35" y="104" text-anchor="middle" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="7.5" letter-spacing="1">OUTSIDE</text>
+
+              <rect x="94" y="70" width="58" height="46" rx="8" fill="#131920" stroke="#ef8a4a" stroke-width="2"/>
+              <text x="123" y="90" text-anchor="middle" fill="#ef8a4a" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">ON</text>
+              <text x="123" y="104" text-anchor="middle" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="7.5" letter-spacing="1">BOILER</text>
+
+              <rect x="182" y="70" width="58" height="46" rx="8" fill="#131920" stroke="#ef8a4a" stroke-width="2"/>
+              <text x="211" y="90" text-anchor="middle" fill="#e8edf2" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">19.5°</text>
+              <text x="211" y="104" text-anchor="middle" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="7.5" letter-spacing="1">HOME</text>
+
+              <rect x="258" y="70" width="40" height="46" rx="8" fill="#131920" stroke="rgba(255,255,255,.2)" stroke-width="2"/>
+              <text x="278" y="90" text-anchor="middle" fill="#e8edf2" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">30m</text>
+              <text x="278" y="104" text-anchor="middle" fill="#8a94a3" font-family="Outfit,sans-serif" font-size="7.5" letter-spacing="1">BOOST</text>
+
+              <line x1="64" y1="93" x2="92" y2="93" stroke="#5aa9e6" stroke-width="1.6" stroke-dasharray="3 5"/>
+              <line x1="152" y1="93" x2="180" y2="93" stroke="#ef8a4a" stroke-width="1.6" stroke-dasharray="3 5" class="flowline"/>
+              <line x1="240" y1="93" x2="256" y2="93" stroke="rgba(255,255,255,.22)" stroke-width="1.6" stroke-dasharray="3 5"/>
+              <text x="78" y="84" text-anchor="middle" fill="#5d6874" font-family="Outfit,sans-serif" font-size="8">&#8594;</text>
+              <text x="166" y="84" text-anchor="middle" fill="#5d6874" font-family="Outfit,sans-serif" font-size="8">&#8594;</text>
+              <text x="248" y="84" text-anchor="middle" fill="#5d6874" font-family="Outfit,sans-serif" font-size="8">&#8594;</text>
+            </g>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>C &nbsp;Linear flow</h3>
+          <p>Outside, boiler, home, boost — left to right, with the dashes moving the way the
+            heat does. Reads like a sentence, and it is the easiest of the three to make responsive
+            because it just stacks.</p>
+          <p>Less glanceable than rings, and the rooms have nowhere to go. Good as the phone
+            layout, not as the main one.</p>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="thumb">
+          <img src="../docs/app-heating.png" alt="The heating panel as built" style="width:100%;border-radius:8px">
+        </div>
+        <div class="body">
+          <h3>As built <span class="tag chosen"><span class="dot"></span>Built</span></h3>
+          <p>The rings got bigger, because the first version was too tight to hold what it was
+            saying: home at r&nbsp;56, the boiler and the outside at r&nbsp;38, boost at r&nbsp;24.
+            The state text now sits <i>inside</i> its ring instead of hanging off the bottom of
+            it, where it ran out of room.</p>
+          <p>Each ring carries a symbol, and the symbol has to mean what the ring says: a flame
+            for a firing boiler, a snowflake below 5&deg;C, a sun above 20&deg;C, a plain
+            thermometer in between. The boost ring counts the minutes actually left rather than
+            a hardcoded half hour.</p>
+          <p>The status tile's &ldquo;next schedule block&rdquo; row is gone &mdash; Ember does not
+            read Hive's schedule, so it could only ever show a dash. In its place:
+            <b>&ldquo;a day, on average&rdquo;</b>, the mean heating time over the last seven whole
+            days.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">03</span><h2>The gas chart</h2></div>
+    <p class="sec-note">The 24-hour bar chart is the wrong shape for this data. Octopus delivers
+      gas a day or two late, so &ldquo;the last 24 hours&rdquo; is usually empty &mdash; and on
+      the days when it is not empty it is showing a day that ended two days ago. Three
+      alternatives, drawn with the real numbers: 2.43 m³ a day, a meter exchange on 3 November,
+      and today with no reading at all.</p>
+    <p class="sec-note"><b style="color:#2f6f5e">Decided, and built:</b> A on the gas panel,
+      B on the Today panel, C behind the MONTH tab. The tabs are real now &mdash; DAY, WEEK and
+      MONTH each draw something different, and each says what it is showing.</p>
+
+    <div class="stack">
+
+      <div class="opt">
+        <div class="thumb">
+          <img src="../docs/chart-A-week-of-days.png" alt="A week of days" style="width:100%;border-radius:8px">
+        </div>
+        <div class="body">
+          <h3>A &nbsp; A week of days <span class="tag chosen"><span class="dot"></span>Built</span></h3>
+          <p>One column per day for the last seven days, the height of it being that day's total,
+            with a line for the weekly average and today's estimate in plum. It is always full, it
+            is the unit people think in &mdash; a day's gas &mdash; and it sits beside the
+            &ldquo;7-day average&rdquo; and &ldquo;vs average&rdquo; tiles without repeating
+            them.</p>
+          <p>A day with no readings is <b>estimated</b>, in plum, with the band's whisker over the
+            top &mdash; the same model that forecasts tomorrow. A day with <i>part</i> of a reading
+            keeps that part in teal, faded, under the estimate. The part is real and the rest is a
+            guess, so the two are never the same colour.</p>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="thumb">
+          <img src="../docs/chart-B-shape-of-a-day.png" alt="The shape of a day" style="width:100%;border-radius:8px">
+        </div>
+        <div class="body">
+          <h3>B &nbsp; The shape of a day <span class="tag chosen"><span class="dot"></span>Built</span></h3>
+          <p>The same 24 hours as the old chart, but each column is the <i>average</i> use in that
+            hour across the last week rather than one night's readings. It is never empty, and it
+            answers a question the old chart could not: <i>when</i> does this house use gas. The
+            cold morning and the warm evening are visible at a glance.</p>
+          <p>Best on the Today panel, where it explains where today's gas goes rather than how
+            much of it there is.</p>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="thumb">
+          <img src="../docs/chart-C-the-month.png" alt="The month" style="width:100%;border-radius:8px">
+        </div>
+        <div class="body">
+          <h3>C &nbsp; The month <span class="tag chosen"><span class="dot"></span>Built</span></h3>
+          <p>A calendar grid of the last 30 days, each day shaded by what it used. It carries the
+            month budget, it shows the meter exchange as a visible hole rather than a mystery,
+            and it is the view that answers &ldquo;is this month normal?&rdquo; &mdash; the
+            question a 24-hour chart could never ask.</p>
+          <p>This was the direction chosen in the first round. The missing piece was ever having
+            the history to draw it, and that is now fixed: Ember asks Octopus for a month of
+            readings when it starts.</p>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="thumb" style="padding:22px 24px;display:block">
+          <p style="color:#8a94a3;font-size:13px;line-height:1.6;margin:0">
+            <b style="color:#e8edf2">The decision</b><br><br>
+            A on the gas panel and B on the Today panel, with C behind the MONTH tab. A is the
+            &ldquo;how much&rdquo; the gas slide is for; B is the &ldquo;when&rdquo; that the
+            Today panel is missing. C is the long view, and it is the one that will matter in
+            February.<br><br>
+            <span style="color:#2f6f5e">Chosen, and built.</span>
+          </p>
+        </div>
+        <div class="body">
+          <h3>The tabs are real</h3>
+          <p>The tabs on the gas panel used to be decoration &mdash; only 24H drew anything. They
+            now switch between three views, each the shape that suits it, and each naming itself
+            in the panel heading: <b>DAY</b> the shape of a day, <b>WEEK</b> a week of days,
+            <b>MONTH</b> the month.</p>
+          <p>Whatever is chosen, the chart says what it is showing. &ldquo;Last 24 hours&rdquo; on
+            a panel that is showing the last two days is a lie, and the axis was the thing making
+            it.</p>
+          <p>One rule runs through all three: <b>a day the meter has not reported is never drawn as
+            a zero.</b> Zero means no gas was used, which would be a lie. What the day <i>is</i>
+            depends on what Ember can honestly say about it: the week chart estimates it, because
+            the chart is asking how much gas each day took; the month grid leaves it a hole,
+            because the calendar is asking what the meter actually said, and the meter exchange
+            belongs in that answer.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="sec-head"><span class="n">04</span><h2>Hive Insights</h2></div>
+    <p class="sec-note">The app shows heating hours, a heating history and a budget. None of that
+      came out of the API — it comes out of <em>history Ember keeps itself</em>. Here is exactly
+      where each one comes from, and what Hive+ would charge you for the same thing.</p>
+
+    <div class="card pad">
+      <div class="decision"><span class="num">01</span><div>
+        <div class="q">Heating hours</div>
+        <div class="a">The API reports the boiler as firing or not, right now. It does not report
+          &ldquo;6 hours 20 minutes today&rdquo;. That number is a sum over time, so Ember has to
+          keep its own record: poll the boiler state, store the transitions, and add them up.
+          The app does this in Hive&rsquo;s cloud; we do it on the Pi.</div>
+        <span class="pick">Build it — it needs the history store</span></div></div>
+
+      <div class="decision"><span class="num">02</span><div>
+        <div class="q">Heating history and trends</div>
+        <div class="a">Same raw material: every state change is recorded with a timestamp, and the
+          history is the list of them. Hive also exposes a per-product events endpoint, which may
+          hand us the same transitions without polling. Worth knowing: the free app already has a
+          <em>limited</em> Heating History — Hive+ unlocks the full one, and with TRVs it can break the history down per room as well as per day.</div>
+        <span class="pick">Build it from stored history</span></div></div>
+
+      <div class="decision"><span class="num">03</span><div>
+        <div class="q">Budget tracking</div>
+        <div class="a">A budget is a number you set, so there is nothing to fetch — but there is
+          something to measure it against, and that is where Ember is <em>better</em> than the app.
+          Hive budgets against the boiler&rsquo;s own estimate. Ember budgets against your metered
+          gas and your actual tariff rate, so the number is the money you will really pay.
+          Hive&rsquo;s own Budget Tracker is a Hive+ feature — this one is free and local.</div>
+        <span class="pick">Build it — on metered gas, not an estimate</span></div></div>
+
+      <div class="decision"><span class="num">04</span><div>
+        <div class="q">What Hive+ would cost you</div>
+        <div class="a">Hive+ is &pound;3.99 a month or &pound;39.90 a year, and it is where
+          Insights, the full Heating History and the Budget Tracker live. But three of its
+          headline features — <em>Saver Mode, Schedule Assist and Away Mode</em> — are explicitly
+          not compatible with Hive radiator valves. You have TRVs. The subscription would buy you
+          the least relevant half of itself.</div>
+        <span class="pick">Skip it — Ember does it locally, free</span></div></div>
+
+      <div class="decision"><span class="num">05</span><div>
+        <div class="q">Why our forecast can be better than Hive&rsquo;s</div>
+        <div class="a">Hive needs a <em>British Gas smart meter account</em> linked before it can
+          show you spending, and it says outright that a new system needs a <em>minimum 30-day
+          learning period</em> before it will forecast anything. Ember fits a degree-day model to
+          your own gas readings, so it can put a number on tomorrow from the first week — with a
+          deliberately wide band until it has enough history to trust.</div>
+        <span class="pick">Build it — and be honest about the band</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">05</span><h2>Colour and type</h2></div>
+    <p class="sec-note">Four colours, one for each thing that can happen in a house. Ember for
+      heat, ice for outside, teal for gas, plum for anything predicted — and everything else is
+      grey so the numbers stay the loudest thing on the screen.</p>
+
+    <div class="card pad" style="margin-bottom:22px">
+      <h3 style="margin-bottom:8px">Three kinds of number, and they never mix</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
+        <div>
+          <div class="kpi teal" style="font-size:26px">2.43<span class="u">m³</span></div>
+          <div style="font-size:12.5px;color:#8A94A3;margin-top:6px"><b style="color:#E8EDF2">Measured</b> —
+            what the meter actually reported. Teal, no adjective.</div>
+        </div>
+        <div>
+          <div class="kpi plum" style="font-size:26px">2.41<span class="u">m³</span></div>
+          <div style="font-size:12.5px;color:#8A94A3;margin-top:6px"><b style="color:#E8EDF2">Estimated</b> —
+            what <i>today</i> should use, from today's weather and your own past readings.
+            Plum, and the word <i>estimated</i>.</div>
+        </div>
+        <div>
+          <div class="kpi plum" style="font-size:26px">2.52<span class="u">m³</span></div>
+          <div style="font-size:12.5px;color:#8A94A3;margin-top:6px"><b style="color:#E8EDF2">Forecast</b> —
+            what <i>tomorrow</i> should use. Plum, and the word <i>forecast</i>.</div>
+        </div>
+      </div>
+      <p style="font-size:12.5px;color:#8A94A3;margin:14px 0 0;max-width:62ch">
+        Octopus does not deliver gas as it happens, so today has no measured gas in it at all.
+        Ember does not leave a hole — it estimates today from the same model that forecasts
+        tomorrow, shows the band, and says <i>estimated</i>. A measured figure is never replaced
+        by one: the moment the meter reports, the estimate goes away.
+      </p>
+    </div>
+
+    <div class="sw">
+      <div class="swatch"><div class="chip" style="background:#0e1116"></div>
+        <div class="meta"><div class="nm">Background</div><div class="hx">#0E1116</div>
+          <div class="us">Never pure black — it makes the panel edges vanish.</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#ef8a4a"></div>
+        <div class="meta"><div class="nm">Ember</div><div class="hx">#EF8A4A</div>
+          <div class="us">Heat, the boiler firing, the peak hour.</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#2fb89a"></div>
+        <div class="meta"><div class="nm">Teal</div><div class="hx">#2FB89A</div>
+          <div class="us">Gas, when it has actually been measured.</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#5aa9e6"></div>
+        <div class="meta"><div class="nm">Ice</div><div class="hx">#5AA9E6</div>
+          <div class="us">Outside temperature, and anything cold.</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#b07ad6"></div>
+        <div class="meta"><div class="nm">Plum</div><div class="hx">#B07AD6</div>
+          <div class="us">Predictions. Nothing that was measured is ever plum.</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#151a21;border-bottom:1px solid #e9e3d6"></div>
+        <div class="meta"><div class="nm">Panel</div><div class="hx">#151A21</div>
+          <div class="us">Cards sit a hair above the background.</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#e8edf2"></div>
+        <div class="meta"><div class="nm">Ink</div><div class="hx">#E8EDF2</div>
+          <div class="us">Never pure white either.</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#8a94a3"></div>
+        <div class="meta"><div class="nm">Dim</div><div class="hx">#8A94A3</div>
+          <div class="us">Labels and units — present, never shouting.</div></div></div>
+    </div>
+
+    <div class="card pad" style="margin-top:28px">
+      <h3 style="margin-bottom:6px">Type</h3>
+      <p style="color:var(--ink-2);font-size:14.5px;line-height:1.6;margin:0 0 10px">
+        Outfit for the words, JetBrains Mono for the numbers. The numbers are the point of a
+        dashboard, and monospaced figures stop them jittering as they tick over.</p>
+      <div class="type-row"><span class="spec">44px · mono 600 · −3% tracking</span><span class="kpi" style="font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.03em">1.84 m³</span></div>
+      <div class="type-row"><span class="spec">19px · mono 600</span><span class="kpi" style="font-family:var(--mono);font-size:19px;font-weight:600">£1.44</span></div>
+      <div class="type-row"><span class="spec">13px · sans 500</span><span style="font-family:var(--sans);font-size:13px">Gas used in the last 24 hours</span></div>
+      <div class="type-row"><span class="spec">10px · sans 600 · 13% tracking</span><span style="font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.13em;color:var(--ink-3)">FROM YOUR OCTOPUS METER</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">06</span><h2>Responsive</h2></div>
+    <p class="sec-note">The same three screens, reflowed. Not a separate mobile page — the same
+      data, the same words, laid out for the space it has.</p>
+    <div class="grid2">
+      <div class="card pad">
+        <h3>Desktop &mdash; wide</h3>
+        <p style="color:var(--ink-2);font-size:14.5px;line-height:1.6;margin:8px 0 0">
+          On a wide screen the diagram takes the top half and the numbers spread across the
+          bottom in a wider row of tiles. The reading order is the same as the kiosk.</p>
+        <div style="margin-top:18px;border:1px solid var(--line);border-radius:12px;padding:14px;background:#fbfaf7">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div style="grid-column:1/-1;height:74px;border-radius:9px;background:#151a21;display:flex;align-items:center;justify-content:center;color:#8a94a3;font-size:11px">diagram &middot; full width</div>
+            <div style="height:60px;border-radius:9px;background:#eef2f5"></div>
+            <div style="height:60px;border-radius:9px;background:#eef2f5"></div>
+            <div style="height:60px;border-radius:9px;background:#eef2f5"></div>
+            <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+              <div style="height:52px;border-radius:9px;background:#eef2f5"></div>
+              <div style="height:52px;border-radius:9px;background:#eef2f5"></div>
+              <div style="height:52px;border-radius:9px;background:#eef2f5"></div>
+              <div style="height:52px;border-radius:9px;background:#eef2f5"></div>
+              <div style="height:52px;border-radius:9px;background:#eef2f5"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card pad">
+        <h3>Phone &mdash; narrow</h3>
+        <p style="color:var(--ink-2);font-size:14.5px;line-height:1.6;margin:8px 0 0">
+          One column, and the diagram becomes the linear flow instead of the rings — rings at
+          this width would be unreadable. The tiles become a scrolling stack.</p>
+        <div style="margin-top:18px;display:flex;justify-content:center">
+          <div style="width:186px;border:1px solid var(--line);border-radius:16px;padding:12px;background:#fbfaf7;display:flex;flex-direction:column;gap:8px">
+            <div style="height:30px;border-radius:8px;background:#151a21;display:flex;align-items:center;justify-content:center;color:#8a94a3;font-size:9px">flow</div>
+            <div style="height:54px;border-radius:9px;background:#eef2f5"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+              <div style="height:44px;border-radius:9px;background:#eef2f5"></div>
+              <div style="height:44px;border-radius:9px;background:#eef2f5"></div>
+              <div style="height:44px;border-radius:9px;background:#eef2f5"></div>
+              <div style="height:44px;border-radius:9px;background:#eef2f5"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">07</span><h2>What I need from you</h2></div>
+    <div class="card pad" style="margin-top:18px">
+      <div class="decision"><span class="num">01</span><div>
+        <div class="q">Which heating diagram?</div>
+        <div class="a">A (rings) is my recommendation — it belongs to the same family as the FoxESS dashboard, it stays calm when nothing is happening, and it survives a narrow screen. B (house cutaway) is the loveliest and needs a floor plan. C (linear) is the fallback for phones.</div>
+        <span class="pick">Pick A, and C on phones</span></div></div>
+      <div class="decision"><span class="num">02</span><div>
+        <div class="q">Which gas chart?</div>
+        <div class="a">A (bars) for the live 24-hour view, with C (month heatmap) as the 30-day tab beside it. B (area) is the alternative if you would rather see the week's shape than its hours.</div>
+        <span class="pick">Pick A, with C as the 30-day tab</span></div></div>
+      <div class="decision"><span class="num">03</span><div>
+        <div class="q">Are these colours right?</div>
+        <div class="a">Ember for heat, teal for measured gas, ice for outside, plum for anything predicted. The name sets the accent, but if your kitchen reads better in a cooler palette I would not argue.</div>
+        <span class="pick">Pick as shown, or name one to change</span></div></div>
+      <div class="decision"><span class="num">04</span><div>
+        <div class="q">What fills the space hot water used to have?</div>
+        <div class="a">With a combi, Hive has no hot water state at all — so today&rsquo;s gas cannot be
+          split into &ldquo;hot water&rdquo; and &ldquo;radiators&rdquo;. The dashboard will show <em>total</em> gas
+          and explain it with the heating state instead. The space that freed up could take
+          &ldquo;this week so far&rdquo;, or the cost as money, or nothing at all.</div>
+        <span class="pick">Pick: total gas only, and leave the space clean</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">08</span><h2>Setting Ember up</h2></div>
+    <p class="sec-note">Built after the first build. The original plan was that you would run a
+      probe in a terminal and copy a file to the right place. That works, once, and then it
+      breaks &mdash; because it is two steps and one of them is remembering. So the settings page
+      does the discovering instead.</p>
+
+    <div class="card pad">
+      <div class="decision"><span class="num">01</span><div>
+        <div class="q">You give it the two things you actually have</div>
+        <div class="a">Your <em>Octopus API key</em> and your <em>Hive login</em>. Everything else
+          is worked out by talking to the services: the account number, the meter point, every
+          meter on it, the product and tariff codes, the meter&rsquo;s own type, the rates, and the
+          unit the meter reads in. Your postcode is enough for the weather &mdash; Open-Meteo turns
+          it into a latitude and longitude and needs no key of its own.</div>
+        <span class="pick">Build it — ask for the key, find the rest</span></div></div>
+
+      <div class="decision"><span class="num">02</span><div>
+        <div class="q">The SMS code</div>
+        <div class="a">Hive may send a one-time code to your phone. The phone is the only place
+          that code exists, so nothing can work it out for you &mdash; but it can be typed into a
+          box on the page, which is friendlier than a terminal prompt. The session is written
+          where Ember can refresh it unattended from then on, and the device is remembered so the
+          code is not asked for every time.</div>
+        <span class="pick">Build it — a box on the page for the code</span></div></div>
+
+      <div class="decision"><span class="num">03</span><div>
+        <div class="q">What the browser remembers</div>
+        <div class="a">The form is kept in the browser&rsquo;s local storage, so a reload does not
+          throw away what you typed. The settings Ember is <em>really</em> using live in a file
+          written <code>0600</code>, and the page always shows those in preference to the
+          remembered ones. Once a sign-in has worked, the secret is taken back out of the
+          browser &mdash; it lives in the file now.</div>
+        <span class="pick">Build it — local storage for the form, a file for the truth</span></div></div>
+
+      <div class="decision"><span class="num">04</span><div>
+        <div class="q">No login</div>
+        <div class="a">The settings page can hold your Hive password, so it would be the obvious
+          thing to put a login on. But this is your own network, and a shared password is not a
+          login &mdash; it is just a secret written on a Post-it. So there is none, and the page
+          says so plainly. Keep it on a network you trust.</div>
+        <span class="pick">No login — private network only</span></div></div>
+
+      <div class="decision"><span class="num">05</span><div>
+        <div class="q">The probes stay</div>
+        <div class="a">They are still the sharpest way to see what an account really contains,
+          and they are what to run when the shape of an API moves. But they are diagnostics now,
+          not setup. The probe and the app share the same sign-in code, so the two cannot disagree
+          about whether the handshake is right &mdash; which matters more than it sounds, because a
+          wrong password and a broken handshake produce exactly the same error message.</div>
+        <span class="pick">Keep them — as diagnostics, sharing the app&rsquo;s code</span></div></div>
+    </div>
+  </section>
+
+  <footer>
+    Ember design proposals &middot; every figure on these screens is invented. The layout is the
+    proposal; the numbers arrive from the accounts.
+  </footer>
+</div>
+</body>
+</html>

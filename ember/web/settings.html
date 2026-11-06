@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ember &middot; Settings</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='%23ef8a4a'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/settings.css">
+</head>
+<body>
+
+<header class="head">
+  <span class="mark"></span>
+  <span class="brand">EMBER</span>
+  <span class="sub">Settings</span>
+  <span class="spacer"></span>
+  <a class="back" href="/">&larr; Dashboard</a>
+</header>
+
+<main>
+
+  <div id="banner" class="banner">Checking what is set up&hellip;</div>
+
+  <section class="card">
+    <div class="card-h">
+      <h2>Heating</h2>
+      <span class="tag">from Hive</span>
+      <span class="state" id="hive-state">&mdash;</span>
+    </div>
+    <p class="hint" id="hive-hint" hidden></p>
+    <p class="note">
+      Ember signs in to Hive with your own email and password, so there is
+      nothing to copy around and no probe to remember to run. If Hive sends
+      you a two-step code, it appears here and you type it in &mdash; the
+      phone is the only place that code exists.
+    </p>
+    <div class="row2">
+      <div class="field">
+        <label for="hive_email">Hive email</label>
+        <input id="hive_email" type="email" autocomplete="username"
+               placeholder="you@example.com" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="hive_password">Password</label>
+        <input id="hive_password" type="password" autocomplete="current-password"
+               placeholder="saved on the server">
+      </div>
+    </div>
+    <div class="actions">
+      <button id="hive-signin" class="btn primary">Sign in to Hive</button>
+      <span class="hint">or sign in on the Hive app first, then press the button</span>
+    </div>
+    <p class="hint">
+      Your password stays on this machine and is never sent back to the
+      browser, so the box is empty every time. If a password is already
+      saved, leave it empty and press the button &mdash; Ember will use the
+      one it has.
+    </p>
+    <div id="hive-code" class="codebox" hidden>
+      <div class="field">
+        <label for="hive_code_input">Code Hive just sent you</label>
+        <input id="hive_code_input" inputmode="numeric" autocomplete="one-time-code"
+               placeholder="6 digits">
+      </div>
+      <div class="actions">
+        <button id="hive-code-send" class="btn primary">Finish signing in</button>
+      </div>
+    </div>
+    <div id="hive-result" class="result"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <h2>Gas</h2>
+      <span class="tag">from your Octopus meter</span>
+      <span class="state" id="octopus-state">&mdash;</span>
+    </div>
+    <p class="note">
+      Give Ember your Octopus API key and it works out the rest: the
+      account, the meter point, every meter on it, the tariff in force and
+      the rates. Nothing else to type.
+    </p>
+    <div class="row2">
+      <div class="field">
+        <label for="octopus_api_key">Octopus API key</label>
+        <input id="octopus_api_key" type="password" spellcheck="false"
+               placeholder="sk_live_...">
+      </div>
+      <div class="field">
+        <label for="octopus_account">Account <em>optional</em></label>
+        <input id="octopus_account" type="text" spellcheck="false"
+               placeholder="found from the key">
+      </div>
+    </div>
+    <div class="actions">
+      <button id="octopus-look" class="btn primary">Look up my account</button>
+    </div>
+    <div id="octopus-result" class="result"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <h2>Where the house is</h2>
+      <span class="tag">for the weather</span>
+    </div>
+    <p class="note">
+      A postcode is enough. Ember looks it up in the UK's own postcode
+      directory and turns it into a latitude and longitude. It needs no
+      key of its own, and it does not mind whether you type
+      <code>PO4 0PL</code> or <code>PO40PL</code>. A town name works too.
+    </p>
+    <div class="row2">
+      <div class="field">
+        <label for="postcode">Postcode</label>
+        <input id="postcode" type="text" spellcheck="false" placeholder="SW1A 1AA">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="place-look" class="btn">Find it</button>
+      </div>
+    </div>
+    <div id="place-result" class="result"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <h2>Numbers</h2>
+      <span class="tag">how Ember works them out</span>
+    </div>
+    <div class="row3">
+      <div class="field">
+        <label for="monthly_budget">Monthly gas budget &pound;</label>
+        <input id="monthly_budget" type="number" step="1" min="0">
+      </div>
+      <div class="field">
+        <label for="base_temperature">Base temperature &deg;C</label>
+        <input id="base_temperature" type="number" step="0.5">
+      </div>
+      <div class="field">
+        <label for="calorific_value">Calorific value kWh/m&sup3;</label>
+        <input id="calorific_value" type="number" step="0.01">
+      </div>
+      <div class="field">
+        <label for="gas_unit">Gas unit</label>
+        <select id="gas_unit">
+          <option value="auto">Work it out</option>
+          <option value="m3">Cubic metres (m&sup3;)</option>
+          <option value="kwh">Kilowatt hours (kWh)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="poll_seconds">Poll every (seconds)</label>
+        <input id="poll_seconds" type="number" step="10" min="30">
+      </div>
+      <div class="field">
+        <label for="heating_minutes_threshold">Heating counts from (minutes)</label>
+        <input id="heating_minutes_threshold" type="number" step="1" min="0">
+      </div>
+    </div>
+    <div class="actions">
+      <button id="numbers-save" class="btn primary">Save</button>
+      <span class="hint">the calorific value is on your gas bill &middot; the unit
+        is worked out from the meter and the readings, and Ember says which it used</span>
+    </div>
+    <div id="numbers-result" class="result"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <h2>Display</h2>
+    </div>
+    <div class="row3">
+      <div class="field">
+        <label for="panel_name">Panel name</label>
+        <input id="panel_name" type="text">
+      </div>
+      <div class="field">
+        <label for="rotation_seconds">Slide rotation (seconds)</label>
+        <input id="rotation_seconds" type="number" step="1" min="0">
+      </div>
+      <div class="field">
+        <label for="clock_24h">Clock</label>
+        <select id="clock_24h">
+          <option value="true">24 hour</option>
+          <option value="false">12 hour</option>
+        </select>
+      </div>
+    </div>
+    <div class="field wide">
+      <label>Slides</label>
+      <div class="checks">
+        <label class="chk"><input type="checkbox" name="slide" value="heating"> Heating</label>
+        <label class="chk"><input type="checkbox" name="slide" value="gas"> Gas</label>
+        <label class="chk"><input type="checkbox" name="slide" value="today"> Today</label>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="display-save" class="btn primary">Save</button>
+    </div>
+    <div id="display-result" class="result"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <h2>Stored history</h2>
+      <span class="state" id="history-state">&mdash;</span>
+    </div>
+    <p class="note">
+      Ember keeps a small local database so it can show heating hours,
+      compare the week and fit the forecast. It does not grow forever:
+      the gas readings and the heating polls are kept for
+      <b id="history-days">&mdash;</b> days, and the log of which room
+      was asking for heat for <b id="trv-days">&mdash;</b> days. Anything
+      older is deleted once a day.
+    </p>
+    <div id="history" class="files"></div>
+    <div class="actions">
+      <button id="history-prune" class="btn">Tidy up now</button>
+    </div>
+    <div id="history-result" class="result"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <h2>On this machine</h2>
+    </div>
+    <p class="note">
+      Everything Ember knows is in two files in the data directory, and the
+      secrets in them are readable only by you. Ember never sends your
+      password or API key to the browser &mdash; this page only ever sees
+      what you type into it.
+    </p>
+    <div id="files" class="files"></div>
+    <div class="actions">
+      <button id="refresh-now" class="btn">Fetch everything again</button>
+      <button id="forget" class="btn quiet">Forget what this browser remembers</button>
+    </div>
+    <div id="files-result" class="result"></div>
+  </section>
+
+</main>
+
+<script src="/static/settings.js"></script>
+</body>
+</html>

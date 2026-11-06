@@ -1,0 +1,20 @@
+/* Ember's palette, in one place.
+ *
+ * The dashboard and the settings page both use this, so the two can never
+ * drift apart into different colours. The fonts are self-hosted so the
+ * kiosk on the wall works with no internet connection.
+ */
+
+@import url('/fonts/fonts.css');
+
+:root {
+  --bg: #0e1116; --panel: #151a21; --panel-2: #1a2029; --line: rgba(255,255,255,.075);
+  --ink: #e8edf2; --dim: #8a94a3; --dimmer: #5d6874;
+  --ember: #ef8a4a; --ember-soft: rgba(239,138,74,.15);
+  --teal: #2fb89a; --teal-soft: rgba(47,184,154,.14);
+  --ice: #5aa9e6; --ice-soft: rgba(90,169,230,.14);
+  --plum: #b07ad6; --plum-soft: rgba(176,122,214,.14);
+  --good: #4bbf7b;
+  --sans: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
