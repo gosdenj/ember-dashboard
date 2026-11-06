@@ -22,6 +22,26 @@ html, body {
 
 body { padding-bottom: 60px; }
 
+/* A finger dragged across the page should not leave the prose
+ * highlighted, the same as on the panel.
+ *
+ * The exceptions are the fields - you have to be able to edit what is in
+ * them - and the places where the page shows a path, because the whole
+ * point of showing one is that you can read it off the screen and use
+ * it somewhere else.
+ */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input, textarea, select, option, code,
+.files, .result {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* -- the header --------------------------------------------------------- */
 
 /* The header is not sticky. A sticky header sits on top of whatever

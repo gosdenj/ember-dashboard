@@ -452,6 +452,28 @@ class SettingsPageTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn(".card", body)
 
+    def test_the_text_cannot_be_selected_on_the_panel(self):
+        """A finger dragged across the panel must not paint the words blue.
+
+        The panel is on a touch screen, and a drag that starts as a tap
+        turns into a text selection - a smudge across the dashboard,
+        on a screen on the wall that nobody is going to clear.
+        """
+        _, app = self.get("/static/app.css")
+        self.assertIn("user-select: none", app)
+        self.assertIn("-webkit-user-select: none", app)
+
+    def test_the_settings_page_keeps_what_has_to_be_selectable(self):
+        """The fields, and the paths, are the ones you need to be able to copy.
+
+        Taking the selection away everywhere would break editing the
+        fields, and it would break reading a path off the screen - and
+        the paths are the point of that part of the page.
+        """
+        _, settings = self.get("/static/settings.css")
+        self.assertIn("user-select: text", settings)
+        self.assertIn(".files", settings)
+
     def test_the_script_is_served(self):
         status, body = self.get("/static/settings.js")
         self.assertEqual(status, 200)
@@ -924,6 +946,23 @@ class SettingsPageBrowserTests(unittest.TestCase):
         settings_row = [r for r in rows if r[0].startswith("settings")]
         self.assertEqual(len(settings_row), 1)
         self.assertNotIn("missing", settings_row[0][1])
+
+    def test_a_path_can_still_be_selected(self):
+        """The selection is taken away from the prose, not from the paths.
+
+        The page says where it put the session file so that you can use
+        it somewhere else, and reading it off the screen means being
+        able to select it.
+        """
+        page = self._page()
+        page.wait_for_selector("#files div", timeout=15000)
+        first = page.locator("#files div").first
+        first.scroll_into_view_if_needed()
+        first.click(click_count=3)
+        selected = page.evaluate("() => window.getSelection().toString()")
+        page.close()
+        self.assertNotEqual(selected.strip(), "",
+                            "the file paths cannot be selected")
 
     def test_the_numbers_save(self):
         page = self._page()

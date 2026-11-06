@@ -167,6 +167,41 @@ class LayoutTests(unittest.TestCase):
             self.assertLessEqual(scroll[0], scroll[1] + 1,
                                  f"the {slide} slide overflows")
 
+    def test_the_text_cannot_be_selected(self):
+        """A finger dragged across the panel must not leave a selection.
+
+        The panel is on a touch screen, and a drag that starts as a tap
+        turns into a text selection - a blue smudge across the
+        dashboard, on a screen on the wall that nobody is going to
+        clear.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1800)
+        spot = page.evaluate(
+            """() => {
+              for (const el of document.querySelectorAll('.slide *')) {
+                if (el.children.length) continue;
+                const text = (el.textContent || '').trim();
+                if (text.length < 4) continue;
+                const r = el.getBoundingClientRect();
+                if (r.width > 40 && r.height > 5) {
+                  return {x: r.x, y: r.y, w: r.width, h: r.height};
+                }
+              }
+              return null;
+            }""")
+        self.assertIsNotNone(spot, "there was no text on the slide to drag over")
+        y = spot["y"] + spot["h"] / 2
+        page.mouse.move(spot["x"] + 1, y)
+        page.mouse.down()
+        page.mouse.move(spot["x"] + min(spot["w"], 120), y, steps=12)
+        page.mouse.up()
+        selected = page.evaluate("() => window.getSelection().toString()")
+        page.close()
+        self.assertEqual(selected.strip(), "",
+                         "the panel's text can be selected")
+
     def test_all_nine_rooms_are_shown(self):
         page = self.browser.new_page(viewport={"width": 800, "height": 480})
         page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
