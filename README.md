@@ -873,6 +873,12 @@ firefox-esr --kiosk http://127.0.0.1:8766
 The slides rotate on their own. `/?slide=gas` pins one slide, which is
 handy for a bookmark.
 
+Each slide is dealt onto the panel like a card: the new one slides in
+from the right and the one it replaces fades away underneath it. Going
+backwards, it comes in from the left. A new reading for the same slide
+does **not** move anything - the panel is rebuilt every two minutes, and
+a screen that is never still is a screen nobody can read.
+
 ### Running it as a service
 
 ```ini

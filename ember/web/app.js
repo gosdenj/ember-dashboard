@@ -1227,6 +1227,66 @@ function slideToday(payload) {
 
 const RENDERERS = { heating: slideHeating, gas: slideGas, today: slideToday };
 
+/* -- the slide transition ----------------------------------------------- */
+
+/* The slide comes in from the right and the one leaving fades away
+ * underneath it, the way a card is dealt onto a deck.
+ *
+ * The animation is started from here rather than from a rule in the
+ * stylesheet, because a CSS animation runs once and then keeps its
+ * final state: the rule for a slide stays matched while that slide is
+ * showing, so it would not run again on the next change of slide.
+ * Starting it here means every change gets one.
+ *
+ * Someone who has asked the browser for less movement should not be
+ * given any.
+ */
+let SLIDE_ANIM = null;
+let GHOST = null;
+/* The slide that is on the screen now.  A change of slide is what sets
+ * the transition off; a new reading for the same slide is not. */
+let LAST_SLIDE = '';
+/* Which way the slide was asked for: 1 for the next one, -1 for the one
+ * before it.  The next slide comes in from the right, the one before
+ * from the left. */
+let SLIDE_WAY = 0;
+
+function slideTransition(ghost, way) {
+  const canvas = document.getElementById('canvas');
+  const live = canvas.querySelector('.slide:not(.ghost)');
+  const still = window.matchMedia
+              && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* The copy dissolves under the slide that is arriving.  It is a
+   * little slower than the slide itself, so the old one is still
+   * faintly there for a moment after the new one has landed. */
+  if (ghost) {
+    if (still || !ghost.animate) {
+      ghost.remove();
+      if (GHOST === ghost) GHOST = null;
+    } else {
+      const g = ghost.animate(
+        [{opacity: 1, transform: 'translateX(0)'},
+         {opacity: 0, transform: 'translateX(0)'}],
+        {duration: 560, delay: 60, easing: 'ease-in-out'});
+      g.onfinish = () => {
+        ghost.remove();
+        if (GHOST === ghost) GHOST = null;
+      };
+    }
+  }
+
+  if (!live || !live.animate || still) return;
+  if (SLIDE_ANIM) { SLIDE_ANIM.cancel(); SLIDE_ANIM = null; }
+  live.classList.add('dealing');
+  const from = (way < 0) ? '-100%' : '100%';
+  SLIDE_ANIM = live.animate(
+    [{transform: 'translateX(' + from + ')', opacity: .8},
+     {transform: 'translateX(0)', opacity: 1}],
+    {duration: 420, easing: 'cubic-bezier(.22,.61,.36,1)'});
+  SLIDE_ANIM.onfinish = () => live.classList.remove('dealing');
+}
+
 function render() {
   const canvas = document.getElementById('canvas');
   if (!state.payload) {
@@ -1237,27 +1297,64 @@ function render() {
   }
   const name = state.slides[state.index] || 'heating';
   const renderer = RENDERERS[name] || slideHeating;
-  canvas.innerHTML = renderer(state.payload);
 
-  canvas.querySelectorAll('.tabs [data-tab]').forEach((tab) => {
+  /* The slide that is on its way out is copied before the new one is put
+   * in place, so that the copy still holds the old slide.  It fades away
+   * under the slide that is arriving.
+   *
+   * Only a change of slide does this.  The dashboard is rebuilt on every
+   * reading - every two minutes - and sliding it every time would be
+   * more movement than anyone wants. */
+  const changed = Boolean(LAST_SLIDE) && name !== LAST_SLIDE;
+  let ghost = null;
+  if (changed) {
+    const leaving = canvas.querySelector('.slide:not(.ghost)');
+    if (leaving) {
+      if (GHOST) { GHOST.remove(); GHOST = null; }
+      ghost = leaving.cloneNode(true);
+      /* The copy has the same element ids in it as the live slide, and
+       * the live one has to be the one the browser finds when the code
+       * goes looking for the clock or the dots. */
+      ghost.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+      ghost.classList.add('ghost');
+    }
+  }
+  LAST_SLIDE = name;
+
+  canvas.innerHTML = renderer(state.payload);
+  if (ghost) canvas.appendChild(ghost);
+
+  const live = canvas.querySelector('.slide:not(.ghost)');
+  live.querySelectorAll('.tabs [data-tab]').forEach((tab) => {
     tab.addEventListener('click', () => {
       state.gasTab = tab.dataset.tab;
       render();
     });
   });
 
-  const dots = document.getElementById('dots');
+  const dots = live.querySelector('#dots');
   if (dots) {
-    dots.innerHTML = state.slides.map((slide, index) =>
+    dots.innerHTML = state.slides.map((name, index) =>
       `<button class="${index === state.index ? 'on' : ''}" data-index="${index}"
-        aria-label="${esc(SLIDE_TITLES[slide] || slide)}"></button>`).join('');
+        aria-label="${esc(SLIDE_TITLES[name] || name)}"></button>`).join('');
     dots.querySelectorAll('button').forEach((button) => {
       button.addEventListener('click', () => {
-        state.index = Number(button.dataset.index);
+        const next = Number(button.dataset.index);
+        /* A slide further along comes in from the right, one further
+         * back from the left. */
+        SLIDE_WAY = next > state.index ? 1 : (next < state.index ? -1 : 0);
+        state.index = next;
         restartTimer();
         render();
       });
     });
+  }
+
+  if (changed) {
+    slideTransition(ghost, SLIDE_WAY);
+    /* The direction has been used, so the next change - the rotation's
+     * own - comes in from the right as usual. */
+    SLIDE_WAY = 0;
   }
 }
 
@@ -1278,6 +1375,9 @@ function restartTimer() {
   if (state.slides.length < 2 || state.rotation <= 0) return;
   state.timer = setInterval(() => {
     state.index = (state.index + 1) % state.slides.length;
+    /* The rotation always goes forwards, so the slide always comes in
+     * from the right. */
+    SLIDE_WAY = 1;
     render();
   }, state.rotation * 1000);
 }
@@ -1348,8 +1448,17 @@ async function boot() {
   fit();
   window.addEventListener('resize', fit);
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowRight') { state.index = (state.index + 1) % state.slides.length; render(); }
-    if (event.key === 'ArrowLeft') { state.index = (state.index + state.slides.length - 1) % state.slides.length; render(); }
+    if (event.key === 'ArrowRight') {
+      state.index = (state.index + 1) % state.slides.length;
+      SLIDE_WAY = 1;
+      render();
+    }
+    if (event.key === 'ArrowLeft') {
+      state.index = (state.index + state.slides.length - 1) % state.slides.length;
+      /* Going back, the slide comes in from the left. */
+      SLIDE_WAY = -1;
+      render();
+    }
   });
 
   restartTimer();

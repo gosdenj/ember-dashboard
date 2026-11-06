@@ -45,6 +45,7 @@ html, body {
 }
 
 #canvas {
+  position: relative;
   width: 800px; height: 480px;
   transform: scale(var(--k, 1));
   transform-origin: center center;
@@ -58,8 +59,34 @@ html, body {
   background: var(--bg); color: var(--ink);
   font-size: 13px;
   position: relative;
+  z-index: 1;
 }
 .slide * { box-sizing: border-box; }
+
+/* -- the slide transition ----------------------------------------------- */
+
+/* The canvas holds the slide that is showing, and for a moment the one
+ * that is leaving as well - so that the new slide can come in over the
+ * top of it, the way a card is dealt onto a deck.  The leaving slide is
+ * a copy, so it has to be behind: it is the copy that fades away under
+ * the slide arriving.
+ *
+ * There is no animation rule here on purpose.  The animation is started
+ * from the script, in slideTransition(), because a CSS animation runs
+ * once and then keeps its final state, and the rule for a slide stays
+ * matched while that slide is showing - so it would not run again on
+ * the next change. */
+#canvas > .slide.ghost {
+  position: absolute; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+/* While a slide is being dealt in it throws a shadow onto the slide
+ * underneath it, which is what makes it read as a card rather than as a
+ * picture sliding past. */
+#canvas > .slide.dealing {
+  box-shadow: -24px 0 48px -16px rgba(0, 0, 0, .65);
+}
 
 .slide-head {
   display: flex; align-items: center; gap: 10px;
@@ -306,7 +333,10 @@ html, body {
 @media (max-width: 799px) {
   html, body { overflow: auto; }
   #stage { position: static; display: block; overflow: visible; height: auto; }
-  #canvas { width: 100%; height: auto; transform: none; }
+  /* The slide comes in from the right, so the canvas is clipped while
+   * it does: on a narrow screen the stage has to be able to scroll, and
+   * without this the slide would be seen sliding past the edge. */
+  #canvas { width: 100%; height: auto; transform: none; overflow: hidden; }
   .slide {
     width: 100%; height: auto; min-height: 100vh; font-size: 14px;
     padding-bottom: 24px;

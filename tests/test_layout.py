@@ -167,6 +167,121 @@ class LayoutTests(unittest.TestCase):
             self.assertLessEqual(scroll[0], scroll[1] + 1,
                                  f"the {slide} slide overflows")
 
+    def test_the_slide_comes_in_from_the_right(self):
+        """The next slide slides in, and the old one fades away under it.
+
+        The panel is on a wall and nobody is going to press anything, so
+        the rotation has to look like it means something: a card dealt
+        onto a deck, not a flash.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1800)
+
+        # Ask for the last slide - the one after the one on the screen -
+        # and hold the animations still, so where the slide is can be
+        # looked at rather than guessed at.
+        during = page.evaluate(
+            """() => {
+              const dots = document.querySelectorAll('#dots button');
+              dots[dots.length - 1].click();
+              document.getAnimations().forEach((a) => a.pause());
+              const canvas = document.getElementById('canvas')
+                              .getBoundingClientRect();
+              const slide = document.querySelector('#canvas .slide:not(.ghost)')
+                              .getBoundingClientRect();
+              return {
+                ghosts: document.querySelectorAll('#canvas .slide.ghost').length,
+                dealing: document.querySelectorAll('#canvas .slide.dealing').length,
+                offset: slide.left - canvas.left,
+              };
+            }""")
+        self.assertEqual(during["ghosts"], 1,
+                         "the leaving slide was not copied")
+        self.assertEqual(during["dealing"], 1,
+                         "the arriving slide is not marked as dealing")
+        self.assertGreater(during["offset"], 0,
+                           "the slide did not come in from the right")
+
+        # And afterwards the copy is gone.
+        page.evaluate("() => document.getAnimations().forEach((a) => a.play())")
+        page.wait_for_timeout(1200)
+        after = page.evaluate(
+            """() => document.querySelectorAll('#canvas .slide.ghost').length""")
+        page.close()
+        self.assertEqual(after, 0, "the copy was left behind")
+
+    def test_going_back_comes_in_from_the_left(self):
+        """The other way round, for the arrow key that goes back."""
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=gas")
+        page.wait_for_timeout(1800)
+        during = page.evaluate(
+            """() => {
+              document.dispatchEvent(new KeyboardEvent('keydown',
+                                        {key: 'ArrowLeft'}));
+              document.getAnimations().forEach((a) => a.pause());
+              const canvas = document.getElementById('canvas')
+                              .getBoundingClientRect();
+              const slide = document.querySelector('#canvas .slide:not(.ghost)')
+                              .getBoundingClientRect();
+              return slide.left - canvas.left;
+            }""")
+        page.close()
+        self.assertLess(during, 0, "the slide did not come in from the left")
+
+    def test_a_new_reading_does_not_move_the_slide(self):
+        """The dashboard is rebuilt on every reading; that must not slide.
+
+        The panel gets a new reading every two minutes. If every one of
+        them sent the slide off again, the panel would be in motion all
+        the time and nothing on it could be read.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1800)
+        during = page.evaluate(
+            """() => {
+              render();
+              return {
+                ghosts: document.querySelectorAll('#canvas .slide.ghost').length,
+                dealing: document.querySelectorAll('#canvas .slide.dealing').length,
+              };
+            }""")
+        page.close()
+        self.assertEqual(during["ghosts"], 0, "a reading sent the slide away")
+        self.assertEqual(during["dealing"], 0, "a reading started a transition")
+
+    def test_no_movement_when_less_movement_is_asked_for(self):
+        """Someone who has asked the browser for less movement gets none.
+
+        A screen on a wall that keeps moving is a screen nobody can read,
+        and the setting is there for a reason.
+        """
+        context = self.browser.new_context(
+            reduced_motion="reduce", viewport={"width": 800, "height": 480})
+        page = context.new_page()
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1800)
+        during = page.evaluate(
+            """() => {
+              const dots = document.querySelectorAll('#dots button');
+              dots[1].click();
+              const canvas = document.getElementById('canvas')
+                              .getBoundingClientRect();
+              const slide = document.querySelector('#canvas .slide:not(.ghost)')
+                              .getBoundingClientRect();
+              return {
+                ghosts: document.querySelectorAll('#canvas .slide.ghost').length,
+                dealing: document.querySelectorAll('#canvas .slide.dealing').length,
+                offset: slide.left - canvas.left,
+              };
+            }""")
+        context.close()
+        self.assertEqual(during["ghosts"], 0, "a copy was left behind")
+        self.assertEqual(during["dealing"], 0, "the slide was still dealt in")
+        self.assertEqual(during["offset"], 0, "the slide moved")
+
     def test_the_text_cannot_be_selected(self):
         """A finger dragged across the panel must not leave a selection.
 
