@@ -12,7 +12,15 @@
 <body>
 
 <div id="stage">
-  <div id="canvas"></div>
+  <div id="canvas">
+    <!-- The header stays put when the slide changes - it carries the
+         clock, and it is the one part of the screen that does not
+         change. -->
+    <div id="head" class="slide-head"></div>
+    <!-- The deck is where the slides live, and where one slides in
+         over the top of the one it replaces. -->
+    <div id="deck"></div>
+  </div>
 </div>
 
 <script src="/static/app.js"></script>

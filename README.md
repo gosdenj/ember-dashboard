@@ -879,6 +879,14 @@ backwards, it comes in from the left. A new reading for the same slide
 does **not** move anything - the panel is rebuilt every two minutes, and
 a screen that is never still is a screen nobody can read.
 
+The header stays where it is while all that happens. It carries the
+clock, and it is the one part of the screen that does not change.
+
+**Swipe it.** Drag the panel to the left for the next slide, or to the
+right for the one before - the same as the arrow keys. A drag has to be
+longer than 60px and clearly across rather than down, so reaching for a
+control does not change the slide by accident.
+
 ### Running it as a service
 
 ```ini

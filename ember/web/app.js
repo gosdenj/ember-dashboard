@@ -1250,10 +1250,25 @@ let LAST_SLIDE = '';
  * before it.  The next slide comes in from the right, the one before
  * from the left. */
 let SLIDE_WAY = 0;
+/* The swipe in progress, if there is one. */
+let SWIPE = null;
+
+/* Ask for the next slide, or the one before it.
+ *
+ * The slide is shown straight away: a gesture that takes half a second
+ * to answer does not feel like it was heard.
+ */
+function goSlide(step) {
+  if (state.slides.length < 2) return;
+  SLIDE_WAY = step;
+  state.index = (state.index + step + state.slides.length) % state.slides.length;
+  restartTimer();
+  render();
+}
 
 function slideTransition(ghost, way) {
-  const canvas = document.getElementById('canvas');
-  const live = canvas.querySelector('.slide:not(.ghost)');
+  const deck = document.getElementById('deck');
+  const live = deck.querySelector('.slide:not(.ghost)');
   const still = window.matchMedia
               && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1288,9 +1303,10 @@ function slideTransition(ghost, way) {
 }
 
 function render() {
-  const canvas = document.getElementById('canvas');
+  const deck = document.getElementById('deck');
+  const head = document.getElementById('head');
   if (!state.payload) {
-    canvas.innerHTML = `<div class="slide"><div class="slide-body">
+    deck.innerHTML = `<div class="slide"><div class="slide-body">
       <div class="panel" style="grid-column:1/-1"><div class="fnote">Waiting for the first reading…</div></div>
     </div></div>`;
     return;
@@ -1308,7 +1324,7 @@ function render() {
   const changed = Boolean(LAST_SLIDE) && name !== LAST_SLIDE;
   let ghost = null;
   if (changed) {
-    const leaving = canvas.querySelector('.slide:not(.ghost)');
+    const leaving = deck.querySelector('.slide:not(.ghost)');
     if (leaving) {
       if (GHOST) { GHOST.remove(); GHOST = null; }
       ghost = leaving.cloneNode(true);
@@ -1316,15 +1332,27 @@ function render() {
        * the live one has to be the one the browser finds when the code
        * goes looking for the clock or the dots. */
       ghost.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+      /* The header does not belong to the slide - it lives above it -
+       * so the copy must not carry one either. */
+      ghost.querySelectorAll('.slide-head').forEach((el) => el.remove());
       ghost.classList.add('ghost');
     }
   }
   LAST_SLIDE = name;
 
-  canvas.innerHTML = renderer(state.payload);
-  if (ghost) canvas.appendChild(ghost);
+  deck.innerHTML = renderer(state.payload);
 
-  const live = canvas.querySelector('.slide:not(.ghost)');
+  /* The header does not change with the slide, so it is moved out of it
+   * and into the one above, where it stays put while the slide under it
+   * is dealt in. */
+  const live = deck.querySelector('.slide:not(.ghost)');
+  const fresh = live.querySelector('.slide-head');
+  if (fresh) {
+    head.replaceChildren(...Array.from(fresh.childNodes));
+    fresh.remove();
+  }
+  if (ghost) deck.appendChild(ghost);
+
   live.querySelectorAll('.tabs [data-tab]').forEach((tab) => {
     tab.addEventListener('click', () => {
       state.gasTab = tab.dataset.tab;
@@ -1332,7 +1360,7 @@ function render() {
     });
   });
 
-  const dots = live.querySelector('#dots');
+  const dots = head.querySelector('#dots');
   if (dots) {
     dots.innerHTML = state.slides.map((name, index) =>
       `<button class="${index === state.index ? 'on' : ''}" data-index="${index}"
@@ -1460,6 +1488,63 @@ async function boot() {
       render();
     }
   });
+
+  /* -- swiping ----------------------------------------------------------- */
+
+  /* A drag across the panel moves to the next slide or the one before,
+   * the same as the arrow keys.  The panel is on a touch screen, so
+   * this is the way it is actually driven.
+   *
+   * The gesture is measured rather than assumed: it has to be longer
+   * than SWIPE_DISTANCE, and clearly across rather than down - a drag
+   * down the screen is somebody trying to scroll, not to change slide.
+   */
+  const SWIPE_DISTANCE = 60;
+  const SWIPE_SLOP = 1.4;
+
+  function swipeIsOne(g) {
+    return Math.abs(g.dx) >= SWIPE_DISTANCE
+        && Math.abs(g.dx) > Math.abs(g.dy) * SWIPE_SLOP;
+  }
+
+  function swipeStart(e) {
+    /* A mouse only swipes with its left button, and a second finger on
+     * a touch screen is not a swipe either. */
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (!e.isPrimary) return;
+    /* Buttons, links and the like are left to themselves. */
+    const target = e.target;
+    if (target && target.closest
+        && target.closest('a,button,input,select,textarea,label')) return;
+    SWIPE = {id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0};
+    /* The finger keeps the gesture even if it wanders off the element
+     * it started on. */
+    try { e.target.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+
+  function swipeMove(e) {
+    if (!SWIPE || e.pointerId !== SWIPE.id) return;
+    SWIPE.dx = e.clientX - SWIPE.x;
+    SWIPE.dy = e.clientY - SWIPE.y;
+    /* Once it is clear that this is a swipe, the browser is told to keep
+     * its hands off - otherwise it tries to scroll or to select the
+     * text. */
+    if (swipeIsOne(SWIPE) && e.cancelable) e.preventDefault();
+  }
+
+  function swipeEnd(e) {
+    if (!SWIPE || e.pointerId !== SWIPE.id) return;
+    const dx = SWIPE.dx, dy = SWIPE.dy;
+    SWIPE = null;
+    if (!swipeIsOne({dx: dx, dy: dy})) return;
+    /* Left is the next slide, right the one before. */
+    goSlide(dx < 0 ? 1 : -1);
+  }
+
+  window.addEventListener('pointerdown', swipeStart, {passive: true});
+  window.addEventListener('pointermove', swipeMove, {passive: false});
+  window.addEventListener('pointerup', swipeEnd);
+  window.addEventListener('pointercancel', () => { SWIPE = null; });
 
   restartTimer();
   render();

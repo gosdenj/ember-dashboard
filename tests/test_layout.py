@@ -188,11 +188,11 @@ class LayoutTests(unittest.TestCase):
               document.getAnimations().forEach((a) => a.pause());
               const canvas = document.getElementById('canvas')
                               .getBoundingClientRect();
-              const slide = document.querySelector('#canvas .slide:not(.ghost)')
+              const slide = document.querySelector('#deck .slide:not(.ghost)')
                               .getBoundingClientRect();
               return {
-                ghosts: document.querySelectorAll('#canvas .slide.ghost').length,
-                dealing: document.querySelectorAll('#canvas .slide.dealing').length,
+                ghosts: document.querySelectorAll('#deck .slide.ghost').length,
+                dealing: document.querySelectorAll('#deck .slide.dealing').length,
                 offset: slide.left - canvas.left,
               };
             }""")
@@ -207,7 +207,7 @@ class LayoutTests(unittest.TestCase):
         page.evaluate("() => document.getAnimations().forEach((a) => a.play())")
         page.wait_for_timeout(1200)
         after = page.evaluate(
-            """() => document.querySelectorAll('#canvas .slide.ghost').length""")
+            """() => document.querySelectorAll('#deck .slide.ghost').length""")
         page.close()
         self.assertEqual(after, 0, "the copy was left behind")
 
@@ -223,7 +223,7 @@ class LayoutTests(unittest.TestCase):
               document.getAnimations().forEach((a) => a.pause());
               const canvas = document.getElementById('canvas')
                               .getBoundingClientRect();
-              const slide = document.querySelector('#canvas .slide:not(.ghost)')
+              const slide = document.querySelector('#deck .slide:not(.ghost)')
                               .getBoundingClientRect();
               return slide.left - canvas.left;
             }""")
@@ -244,8 +244,8 @@ class LayoutTests(unittest.TestCase):
             """() => {
               render();
               return {
-                ghosts: document.querySelectorAll('#canvas .slide.ghost').length,
-                dealing: document.querySelectorAll('#canvas .slide.dealing').length,
+                ghosts: document.querySelectorAll('#deck .slide.ghost').length,
+                dealing: document.querySelectorAll('#deck .slide.dealing').length,
               };
             }""")
         page.close()
@@ -269,11 +269,11 @@ class LayoutTests(unittest.TestCase):
               dots[1].click();
               const canvas = document.getElementById('canvas')
                               .getBoundingClientRect();
-              const slide = document.querySelector('#canvas .slide:not(.ghost)')
+              const slide = document.querySelector('#deck .slide:not(.ghost)')
                               .getBoundingClientRect();
               return {
-                ghosts: document.querySelectorAll('#canvas .slide.ghost').length,
-                dealing: document.querySelectorAll('#canvas .slide.dealing').length,
+                ghosts: document.querySelectorAll('#deck .slide.ghost').length,
+                dealing: document.querySelectorAll('#deck .slide.dealing').length,
                 offset: slide.left - canvas.left,
               };
             }""")
@@ -281,6 +281,113 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(during["ghosts"], 0, "a copy was left behind")
         self.assertEqual(during["dealing"], 0, "the slide was still dealt in")
         self.assertEqual(during["offset"], 0, "the slide moved")
+
+    def test_the_header_stays_put(self):
+        """The header does not move when the slide does.
+
+        It carries the clock, and it is the one part of the screen that
+        does not change - so it should not slide away with the slide
+        underneath it.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1800)
+        during = page.evaluate(
+            """() => {
+              const head = document.getElementById('head');
+              const before = head.getBoundingClientRect().top;
+              const dots = document.querySelectorAll('#dots button');
+              dots[1].click();
+              document.getAnimations().forEach((a) => a.pause());
+              const deck = document.getElementById('deck')
+                              .getBoundingClientRect();
+              const slide = document.querySelector('#deck .slide:not(.ghost)')
+                              .getBoundingClientRect();
+              return {
+                before: before,
+                after: head.getBoundingClientRect().top,
+                parent: head.parentElement.id,
+                moved: slide.left - deck.left,
+              };
+            }""")
+        page.close()
+        self.assertEqual(during["parent"], "canvas",
+                         "the header is inside the deck, so it slides")
+        self.assertEqual(during["after"], during["before"],
+                         "the header moved")
+        self.assertGreater(during["moved"], 0,
+                           "the slide did not move, so this proves nothing")
+
+    def test_a_swipe_moves_to_the_next_slide(self):
+        """A drag across the panel moves to the next slide.
+
+        The panel is on a touch screen, so this is how it is actually
+        driven. The mouse is used here because it goes through the same
+        pointer events a finger does.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1800)
+        before = page.evaluate(
+            """() => document.querySelector('#head .sub').textContent""")
+
+        # A drag to the left is the next slide.
+        page.mouse.move(620, 300)
+        page.mouse.down()
+        page.mouse.move(400, 304, steps=15)
+        page.mouse.up()
+        page.wait_for_timeout(800)
+        after = page.evaluate(
+            """() => document.querySelector('#head .sub').textContent""")
+        page.close()
+        self.assertNotEqual(after, before, "the swipe did nothing")
+
+    def test_a_swipe_the_other_way_goes_back(self):
+        """And a drag to the right is the one before."""
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=gas")
+        page.wait_for_timeout(1800)
+        before = page.evaluate(
+            """() => document.querySelector('#head .sub').textContent""")
+
+        page.mouse.move(200, 300)
+        page.mouse.down()
+        page.mouse.move(420, 304, steps=15)
+        page.mouse.up()
+        page.wait_for_timeout(800)
+        after = page.evaluate(
+            """() => document.querySelector('#head .sub').textContent""")
+        page.close()
+        self.assertNotEqual(after, before, "the swipe did nothing")
+
+    def test_a_drag_that_is_not_a_swipe_does_nothing(self):
+        """A short drag, or one that is mostly downwards, is not a swipe.
+
+        Somebody reaching for a control should not change the slide by
+        accident, and a drag down the screen is somebody trying to
+        scroll.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1800)
+        before = page.evaluate(
+            """() => document.querySelector('#head .sub').textContent""")
+
+        # Too short to be a swipe.
+        page.mouse.move(620, 300)
+        page.mouse.down()
+        page.mouse.move(600, 302, steps=5)
+        page.mouse.up()
+        # Mostly downwards.
+        page.mouse.move(400, 200)
+        page.mouse.down()
+        page.mouse.move(430, 380, steps=15)
+        page.mouse.up()
+        page.wait_for_timeout(800)
+        after = page.evaluate(
+            """() => document.querySelector('#head .sub').textContent""")
+        page.close()
+        self.assertEqual(after, before, "something that was not a swipe changed the slide")
 
     def test_the_text_cannot_be_selected(self):
         """A finger dragged across the panel must not leave a selection.
