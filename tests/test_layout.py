@@ -16,6 +16,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from ember.config import Settings
 from ember.dashboard import Dashboard
@@ -610,6 +611,19 @@ class TroubleTests(unittest.TestCase):
         cls.settings.set("hive_session_file", str(data / "nothing-here.json"))
         cls.history = History(data / "history.db")
         cls.dashboard = Dashboard(cls.settings, cls.history, None)
+        # The app looks for a session in three places: the one named in
+        # the settings, the shared data directory, and a copy the probe
+        # leaves next to itself. On a machine that has ever signed in -
+        # which is most machines that have run this - the test would
+        # find that session, try to renew it against the real Hive, and
+        # fail with a completely different reason. So the search is
+        # pointed at an empty directory instead: no session anywhere,
+        # which is the thing this test is about.
+        cls._session_paths = mock.patch(
+            "ember.dashboard.Dashboard._session_paths",
+            return_value=[str(data / "nothing-here.json")])
+        cls._session_paths.start()
+        cls.addClassCleanup(cls._session_paths.stop)
         cls.dashboard.poll()
         cls.server = EmberServer(("127.0.0.1", 0), cls.settings, cls.dashboard)
         cls.port = cls.server.server_address[1]

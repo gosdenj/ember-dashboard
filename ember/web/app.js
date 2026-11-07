@@ -240,6 +240,7 @@ const FLAME_SMALL = '<svg class="flame" width="9" height="11" viewBox="0 0 24 24
  */
 const RING_ICONS = {
   flame: '<path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 2-5 0 2 1 3 2 3 1-2 0-5 1-9z"/>',
+  home: '<path d="M12 3.2 2.8 11h2.4v9.2h5.2v-5.6h3.2v5.6h5.2V11h2.4z"/>',
   thermometer: '<path d="M10 13.7V5a2 2 0 1 1 4 0v8.7a4 4 0 1 1-4 0z"/>',
   sun: '<circle cx="12" cy="12" r="4"/>'
     + '<path d="M12 1.6v2.4M12 20v2.4M1.6 12H4M20 12h2.4M4.6 4.6l1.7 1.7'
@@ -334,6 +335,99 @@ function boostMinutes(until) {
   return minutes > 0 ? minutes : 0;
 }
 
+/* -- the home ring's scale and colours ------------------------------------ */
+
+/* The scale the home ring is drawn on.
+ *
+ * It does not move. A gauge whose ends move with the weather cannot be
+ * read at a glance, and the heating schedule alone would swing it by
+ * fifteen degrees twice a day - which is what the ring used to do: it
+ * measured the distance to a setpoint that was 7 degrees while the
+ * heating was off and 21 while it was on, so the same house could look
+ * full or three-quarters full with nothing having changed.
+ */
+const HEAT_MIN = 5;
+const HEAT_MAX = 25;
+
+/* The colours the ring takes as the house gets warmer.
+ *
+ * Named rather than written out, because the colours live in theme.css
+ * with the rest of the palette.
+ */
+const HEAT_RAMP = ['--heat-1', '--heat-2', '--heat-3', '--heat-4', '--heat-5'];
+
+/* Where a temperature sits on that scale, as a number from 0 to 1.
+ *
+ * Nothing in it, and it is not on the scale.
+ */
+function heatScale(temp) {
+  if (temp === null || temp === undefined || temp === '') return null;
+  const value = Number(temp);
+  if (Number.isNaN(value)) return null;
+  return Math.max(0, Math.min(1, (value - HEAT_MIN) / (HEAT_MAX - HEAT_MIN)));
+}
+
+/* The ramp, read from the stylesheet.
+ *
+ * The palette is the stylesheet's business, so it is read from there
+ * rather than repeated here - the two cannot drift apart.
+ */
+let heatRampColours = null;
+
+function readHeatRamp() {
+  if (heatRampColours) return heatRampColours;
+  const styles = getComputedStyle(document.documentElement);
+  heatRampColours = HEAT_RAMP.map((name) => {
+    const value = (styles.getPropertyValue(name) || '').trim();
+    const hex = /^#([0-9a-f]{6})$/i.exec(value);
+    if (!hex) return [239, 138, 74];
+    return [
+      parseInt(hex[1].slice(0, 2), 16),
+      parseInt(hex[1].slice(2, 4), 16),
+      parseInt(hex[1].slice(4, 6), 16),
+    ];
+  });
+  return heatRampColours;
+}
+
+/* The colour for a point on the scale.
+ *
+ * The steps between the palette's colours are mixed, so the ring warms
+ * up smoothly instead of jumping from one colour to the next.
+ */
+function heatColour(scale) {
+  const ramp = readHeatRamp();
+  const at = Math.max(0, Math.min(1, scale)) * (ramp.length - 1);
+  const low = Math.floor(at);
+  const high = Math.min(ramp.length - 1, low + 1);
+  const mix = at - low;
+  const rgb = ramp[low].map((value, index) =>
+    Math.round(value + (ramp[high][index] - value) * mix));
+  return 'rgb(' + rgb.join(',') + ')';
+}
+
+/* A mark on the ring for the target temperature.
+ *
+ * The ring's length is the house's own temperature, so the setpoint has
+ * to be a mark on the same scale rather than more of the arc - and the
+ * mark has to cross the ring, or it is lost in the colour behind it.
+ */
+function targetTick(scale, cx, cy, r) {
+  const angle = (-90 + 360 * Math.max(0, Math.min(1, scale))) * Math.PI / 180;
+  const inner = r - 9;
+  const outer = r + 9;
+  const at = (distance) => [
+    (cx + distance * Math.cos(angle)).toFixed(2),
+    (cy + distance * Math.sin(angle)).toFixed(2),
+  ];
+  const from = at(inner);
+  const to = at(outer);
+  return `<line data-tick="target" x1="${from[0]}" y1="${from[1]}" x2="${to[0]}" y2="${to[1]}"
+          stroke="var(--bg)" stroke-width="5" stroke-linecap="round"/>
+          <line data-tick="target" x1="${from[0]}" y1="${from[1]}" x2="${to[0]}" y2="${to[1]}"
+          stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>`;
+}
+
 /* The rings.
  *
  * Home in the middle, because that is where the eye goes. The boiler
@@ -356,10 +450,24 @@ function ringDiagram(heating) {
   const outside = heating.outside_temp;
   const firing = heating.boiler_on;
 
-  const ratio = (home !== null && target) ? Math.max(0, Math.min(1, (home - 10) / Math.max(1, target - 10))) : 0;
+  /* The home ring.
+   *
+   * Its length is how warm the house is on a fixed cold-to-hot scale,
+   * and its colour is that same scale's ramp - blue when the house is
+   * cold, the boiler's orange when it is warm. Both come from one
+   * number, so the ring cannot say one thing with its colour and
+   * another with its length.
+   *
+   * The target is a mark on the same scale rather than more of the
+   * arc: the setpoint still has to be visible, but it must not change
+   * the length of the ring when the schedule moves.
+   */
+  const heat = heatScale(home);
+  const heatInk = heat === null ? 'var(--dimmer)' : heatColour(heat);
   const homeR = 64;
   const circumference = 2 * Math.PI * homeR;
-  const dash = Math.round(circumference * ratio * 0.88);
+  const dash = Math.round(circumference * (heat === null ? 0 : heat));
+  const targetHeat = heatScale(target);
 
   // The boost that ends soonest, wherever it is.
   //
@@ -405,12 +513,14 @@ function ringDiagram(heating) {
   return `<svg viewBox="0 0 470 212" width="100%" height="100%" style="max-height:100%">
     <g data-ring="home">
       <circle cx="${homeX}" cy="${homeY}" r="${homeR}" fill="#11161d" stroke="rgba(255,255,255,.08)" stroke-width="7"/>
-      <circle cx="${homeX}" cy="${homeY}" r="${homeR}" fill="none" stroke="${ratio > 0.02 ? 'var(--ember)' : 'rgba(255,255,255,.12)'}"
+      ${heat !== null && heat > 0.005 ? `<circle cx="${homeX}" cy="${homeY}" r="${homeR}" fill="none" stroke="${heatInk}"
               stroke-width="7" stroke-linecap="round" transform="rotate(-90 ${homeX} ${homeY})"
-              stroke-dasharray="${dash} ${circumference}"/>
-      <text x="${homeX}" y="${homeY + 1}" text-anchor="middle" fill="var(--ink)"
+              stroke-dasharray="${dash} ${circumference}"/>` : ''}
+      ${targetHeat === null ? '' : targetTick(targetHeat, homeX, homeY, homeR)}
+      ${ringIcon('home', homeX, homeY - 36, 22, heatInk)}
+      <text x="${homeX}" y="${homeY + 10}" text-anchor="middle" fill="${heatInk}"
             font-family="JetBrains Mono,monospace" font-size="30" font-weight="600">${home === null ? '—' : num(home) + '°'}</text>
-      <text x="${homeX}" y="${homeY + 26}" text-anchor="middle" fill="var(--dim)"
+      <text x="${homeX}" y="${homeY + 34}" text-anchor="middle" fill="var(--dim)"
             font-family="Outfit,sans-serif" font-size="10.5" letter-spacing="1.8">HOME</text>
     </g>
 

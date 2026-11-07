@@ -15,6 +15,15 @@
   --ice: #5aa9e6; --ice-soft: rgba(90,169,230,.14);
   --plum: #b07ad6; --plum-soft: rgba(176,122,214,.14);
   --good: #4bbf7b;
+  /* The temperature ramp for the home ring.
+   *
+   * Cold is the weather's blue and warm is the boiler's orange, with the
+   * steps between them borrowed from the same palette - so the ring never
+   * invents a colour the rest of the dashboard does not have. The middle
+   * is a pale gold rather than a saturated one, because a blue mixed
+   * into a yellow the usual way comes out olive. */
+  --heat-1: #4f9de0; --heat-2: #8fb8d8; --heat-3: #e8d48a;
+  --heat-4: #ef8a4a; --heat-5: #e5533c;
   --sans: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }

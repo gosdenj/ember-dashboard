@@ -744,14 +744,14 @@ The charts are drawn with the real numbers on the design page
 
 ### The heating panel's rings, and the two pills
 
-The heating panel is three rings: **home** in the middle, the **boiler**
+The heating panel is four rings: **home** in the middle, the **boiler**
 and the **outside** in the corners, and the **boost** underneath the
 outside ring. The symbols in them have to mean what the ring beside them
-is saying — a flame for a boiler that is firing, a snowflake for a cold
-morning, a sun for a warm one, a plain thermometer for anything in
-between. A drop where a flame belongs is a picture arguing with the
-number next to it. The boost ring counts the minutes that are actually
-left, not a hardcoded half hour.
+is saying — a house for the home ring, a flame for a boiler that is
+firing, a snowflake for a cold morning, a sun for a warm one, a plain
+thermometer for anything in between. A drop where a flame belongs is a
+picture arguing with the number next to it. The boost ring counts the
+minutes that are actually left, not a hardcoded half hour.
 
 **The boost ring shows whose boost it is.** A boost can be on the boiler
 or on one room's valve, and they are different things: the boiler's
@@ -763,6 +763,29 @@ went at the same time: it said the same thing a second time, and worse.
 
 The symbols are 20 points now — a third bigger — and they still sit
 inside their rings, with the word below them.
+
+**The home ring is a thermometer.** Its length is how warm the house is
+on a fixed scale from 5°C to 25°C, and its colour is that same scale's
+ramp: the weather's blue when the house is cold, the boiler's orange
+when it is warm, with the house and the number in the middle taking the
+same colour. Both come from one number, so the ring cannot say one
+thing with its colour and another with its length.
+
+It used to measure the *distance to the setpoint* instead —
+`(home − 10) ÷ (target − 10)` — which is not a temperature and is not
+even stable. The heating schedule swings the setpoint from 7°C while
+the heating is off to 21°C while it is on, so the same house could look
+full or three-quarters full with nothing in the world having changed.
+Its colour was a constant orange that had nothing to do with the
+temperature at all, which is why there was no colour temperature to
+read.
+
+**The setpoint is a mark on the ring, not more of the arc.** The white
+notch across the ring is where the target sits on that same scale, so
+the setpoint is still visible without the ring changing length when the
+schedule moves. With the heating off and the house at 18°C, the ring is
+about two-thirds full and the notch is near the bottom: warm house,
+cold setpoint, nothing wrong.
 
 **Nothing joins the rings up.** The dotted lines between them said
 "these are connected", which the layout already says, and they ran
