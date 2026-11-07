@@ -198,11 +198,74 @@ class LayoutTests(unittest.TestCase):
         case the gas slide has, and the demo - which reports today and
         says its unit in one line - never reaches it.
 
-        This is the panel's own worst case, written out: the cost's
-        explanation has to fit above the unit's note without pushing
-        the unit rate out of sight.
+        This is the panel's own worst case, written out: it has to fit
+        without pushing the unit rate out of sight.
         """
         self.assertEqual(self.check(800, 480, "gas", inject=BEHIND_THE_METER), [])
+
+    def test_the_unit_rate_is_on_the_screen_when_the_meter_is_behind(self):
+        """The row that falls off is the bottom one.
+
+        The rows sit in a box that hides its overflow, so when the
+        panel is full the last row - the unit rate - is the one that
+        disappears. The panel can look perfect from the outside while
+        a number is missing, so the rows are checked one by one.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=gas")
+        page.wait_for_timeout(1800)
+        page.evaluate(BEHIND_THE_METER)
+        page.wait_for_timeout(300)
+        rows = page.evaluate(
+            """() => {
+              const box = document.querySelector('.rows');
+              const bounds = box.getBoundingClientRect();
+              return Array.from(box.children).map((row) => {
+                const r = row.getBoundingClientRect();
+                return {
+                  text: row.innerText.replace(/\\s+/g, ' ').trim(),
+                  cut: Math.round(Math.max(r.bottom - bounds.bottom,
+                                           bounds.top - r.top)),
+                };
+              });
+            }""")
+        page.close()
+        self.assertTrue(rows, "no rows in the today tile")
+        cut = [row for row in rows if row["cut"] > 1]
+        self.assertEqual(cut, [], f"cut off in the today tile: {cut}")
+        self.assertTrue(any("Unit rate" in row["text"] for row in rows))
+
+    def test_the_forecast_note_has_room_at_the_bottom_of_its_tile(self):
+        """A line that ends on the edge is one line away from being cut.
+
+        The TODAY & TOMORROW tile is exactly as tall as its content, and
+        the forecast note is the last thing in it - so when the note ends
+        on the panel's edge there is nothing left for the descenders,
+        and one more line anywhere above it cuts the note off.
+
+        The bigger type took this tile's slack away. The space came back
+        out of the weather rows and the gaps around them.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=today")
+        page.wait_for_timeout(1800)
+        clearance = page.evaluate(
+            """() => {
+              const label = document.querySelector('.wx-gas-label');
+              if (!label) return null;
+              const panel = label.closest('.panel');
+              const note = panel.querySelector('.fnote');
+              const style = getComputedStyle(panel);
+              const bounds = panel.getBoundingClientRect();
+              const contentBottom = bounds.bottom - 1
+                - (parseFloat(style.paddingBottom) || 0);
+              return Math.round(contentBottom - note.getBoundingClientRect().bottom);
+            }""")
+        page.close()
+        self.assertIsNotNone(clearance, "no forecast on the today slide")
+        self.assertGreaterEqual(
+            clearance, 8,
+            "the forecast note has no room at the bottom of its tile")
 
     def test_the_slide_itself_does_not_scroll(self):
         for slide in ("heating", "gas", "today"):

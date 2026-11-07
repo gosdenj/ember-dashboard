@@ -1329,11 +1329,11 @@ function slideToday(payload) {
   const forecastBody = forecast.available ? `
     <div class="kpi" style="font-size:35px;color:var(--plum)">${num(forecast.tomorrow_m3, 2)}${unit ? `<span class="u">${unit}</span>` : ''}</div>
     <div class="dimmer" style="font-size:11.5px;margin-top:5px">${forecastLine(gas, forecast)}</div>
-    <div class="fnote" style="margin-top:10px">
+    <div class="fnote" style="margin-top:6px">
       ${num(forecast.outside_mean, 1)}°C forecast &middot; ${num(forecast.degree_days, 1)} degree-days at a ${num(forecast.base_temperature, 0)}°C base<br>
       Fitted on ${forecast.model ? forecast.model.days_used : 0} days of your own readings.
     </div>` : `
-    <div class="fnote" style="margin-top:10px">
+    <div class="fnote" style="margin-top:6px">
       Not enough history yet to forecast.<br>
       ${esc(forecast.reason || '')}
     </div>`;
@@ -1380,7 +1380,7 @@ function slideToday(payload) {
       <div class="panel" style="grid-column:1/-1">
         <div class="p-h"><h4>The week</h4>${weekPill}<span class="src">${weekCaption}</span></div>
         <div class="tiles weekstrip" style="grid-template-columns:repeat(7,1fr)">${week}</div>
-        ${weekNote ? `<div class="dimmer" style="font-size:11.5px;margin-top:6px">${weekNote}</div>` : ''}
+        ${weekNote ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${weekNote}</div>` : ''}
       </div>
     </div>
   </div>`;

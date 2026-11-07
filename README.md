@@ -283,6 +283,12 @@ and nothing said about a code Ember has not seen. Under it sits tomorrow's
 gas — the plum figure, the cost, the degree-days at the base temperature, and
 the note about how many days the fit is standing on.
 
+That tile is the tightest one on the panel, and it is tight for a reason: the
+week strip underneath it is as tall as it needs to be, so whatever the tile
+above gives away, the tile below takes. The forecast note is the last thing in
+it, and a note that ends exactly on the panel's edge is one line away from
+being cut off. So it has to have room at the bottom, and it does.
+
 **The week** is a strip of days: what each one cost, the gas behind it, and
 the heating hours beside it. Next to the heading is the **week's total** in a
 pill — the sum of the days that have a cost, and nothing else. When any of it
