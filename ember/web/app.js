@@ -1038,19 +1038,6 @@ function slideGas(payload) {
   // Today's estimate, when the meter has not reported today yet.
   const est = todayEstimate(gas);
 
-  /* Whether the cost is made of the two charges below it.
-   *
-   * It is, whenever both of them are on the panel: the metered
-   * energy charge, or an estimate of it for a day the meter has not
-   * reported, plus the standing charge. When either of them is not
-   * there - no unit, so no energy charge to speak of - the claim
-   * cannot be made, so it is not made.
-   */
-  const energyShown = (est && gas.unit_rate_p)
-    || (gas.energy_p !== null && gas.energy_p !== undefined);
-  const standingShown = gas.standing_p !== null && gas.standing_p !== undefined;
-  const costExplained = !!(energyShown && standingShown);
-
   const chartWidth = 470;
   const chartHeight = 210;
   // A window with no readings at all has no peak hour. Without this
@@ -1159,7 +1146,6 @@ function slideGas(payload) {
           <div class="row"><span class="nm">Standing charge</span><span class="t">${gas.standing_p === null || gas.standing_p === undefined ? '\u2014' : money(gas.standing_p / 100)}</span></div>
           <div class="row"><span class="nm">Unit rate</span><span class="t">${gas.unit_rate_p === null || gas.unit_rate_p === undefined ? '\u2014' : num(gas.unit_rate_p, 2) + 'p/kWh'}</span></div>
         </div>
-        ${costExplained ? `<div class="dimmer" style="font-size:10.5px;margin-top:5px">the cost is the energy charge plus the standing charge</div>` : ''}
         ${gas.unit_reason ? `<div class="foot">Unit: ${esc(gas.unit_label || gas.unit)} &mdash; ${esc(gas.unit_reason)}.</div>` : ''}
       </div>
 

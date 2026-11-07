@@ -251,9 +251,14 @@ chart says which is which.
 
 **Today's figures** are the day's volume and what it cost, broken down into
 the energy charge and the standing charge — the two add up to the cost above
-them — with the unit rate and the unit itself. The panel says in words that the
-cost is **the energy charge plus the standing charge**, and says which unit the
-readings are in and **why**, so the numbers can be argued with.
+them — with the unit rate and the unit itself. The two charges are named as
+rows, so the panel does not need a sentence saying what the cost is made of;
+it says which unit the readings are in and **why**, so the numbers can be
+argued with.
+
+The tile is tight on a 7" panel, and it is the last row that goes when it is
+too full — so the unit rate is the thing to watch. There is no caption under
+the rows for that reason: it was the thing that squeezed them.
 
 **Today at a glance** is six tiles: gas today, cost, the 7-day average, how
 today compares with it, the peak hour, and the month so far.

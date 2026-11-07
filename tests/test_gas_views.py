@@ -269,11 +269,51 @@ class TheTodayTileTests(_GasViewsFixture, unittest.TestCase):
         self.assertIn("Unit:", text)
         self.assertIn("cubic metres", text)
 
-    def test_the_panel_says_what_the_cost_is_made_of(self):
+    def test_the_cost_is_shown_as_its_two_parts(self):
+        """The cost, and the two charges it is made of.
+
+        The panel used to say in words that the cost is the energy
+        charge plus the standing charge. It does not any more: on a
+        7" panel that sentence was the thing that squeezed the rows
+        underneath it, and the unit rate - the last row - was the one
+        that fell off. The two rows are named, and they are right
+        there under the cost, so the sentence was saying what the rows
+        already say.
+        """
         page = self._page()
         text = page.evaluate("() => document.querySelector('.slide').innerText")
         page.close()
-        self.assertIn("energy charge plus the standing charge", text)
+        self.assertIn("Cost today", text)
+        self.assertIn("Energy charge", text)
+        self.assertIn("Standing charge", text)
+        self.assertNotIn("energy charge plus the standing charge", text.lower())
+
+    def test_every_row_of_the_today_tile_is_on_the_screen(self):
+        """The last row is the one that goes when the panel is full.
+
+        The rows sit in a box that hides its overflow, so when the
+        panel is too full the row that falls off is the bottom one -
+        the unit rate, which is a number worth reading. Every row has
+        to be inside the box that holds them.
+        """
+        page = self._page()
+        rows = page.evaluate(
+            """() => {
+              const box = document.querySelector('.rows');
+              const bounds = box.getBoundingClientRect();
+              return Array.from(box.children).map((row) => {
+                const r = row.getBoundingClientRect();
+                return {
+                  text: row.innerText.replace(/\\s+/g, ' ').trim(),
+                  cut: Math.round(Math.max(r.bottom - bounds.bottom,
+                                           bounds.top - r.top)),
+                };
+              });
+            }""")
+        page.close()
+        cut = [row for row in rows if row["cut"] > 1]
+        self.assertTrue(rows, "no rows in the today tile")
+        self.assertEqual(cut, [], f"cut off in the today tile: {cut}")
 
     def _tiles(self, page):
         return page.evaluate(
