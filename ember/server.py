@@ -33,6 +33,17 @@ from .octopus import OctopusError
 
 WEB = Path(__file__).parent / "web"
 
+# The fonts are the one thing the panel cannot do without, so their
+# content type is stated rather than guessed. The server sends
+# nosniff, and a browser told that a font is octet-stream is entitled
+# to refuse it - and Python's own MIME table does not know about
+# .woff2 on every version, or without the system's media types file.
+CONTENT_TYPES = {
+    ".woff2": "font/woff2",
+    ".woff": "font/woff",
+    ".ttf": "font/ttf",
+}
+
 
 class Emitter:
     """One Server-Sent Events client."""
@@ -92,7 +103,9 @@ class Handler(BaseHTTPRequestHandler):
         except OSError:
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
             return
-        content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        content_type = CONTENT_TYPES.get(path.suffix.lower()) \
+            or mimetypes.guess_type(path.name)[0] \
+            or "application/octet-stream"
         if content_type.startswith("text/") or content_type.endswith("javascript"):
             content_type += "; charset=utf-8"
         self._send(HTTPStatus.OK, body, content_type)

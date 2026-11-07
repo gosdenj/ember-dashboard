@@ -8,6 +8,7 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest import mock
 
 from ember.config import Settings
 from ember.dashboard import Dashboard
@@ -91,6 +92,26 @@ class ServerTests(unittest.TestCase):
             status, body, _ = self.get(path)
             self.assertEqual(status, 200, path)
             self.assertTrue(body)
+
+    def test_the_fonts_are_served_as_fonts(self):
+        """The content type has to be right, or the browser may refuse them.
+
+        The server sends nosniff, and a browser that is told a font is
+        octet-stream is entitled to ignore it - which puts the panel
+        back in the machine's font, and the machine's font is wider.
+
+        The MIME table is emptied out for the test, because the whole
+        point is that the type comes from Ember and not from whatever
+        Python happens to be installed. On the container it is not.
+        """
+        with mock.patch("ember.server.mimetypes.guess_type",
+                        return_value=(None, None)):
+            for name in ("outfit-100_900-latin.woff2",
+                         "jetbrains-mono-100_800-latin.woff2"):
+                status, body, headers = self.get(f"/fonts/{name}")
+                self.assertEqual(status, 200, name)
+                self.assertTrue(body)
+                self.assertEqual(headers["Content-Type"], "font/woff2", name)
 
     def test_a_missing_file_is_a_404(self):
         with self.assertRaises(urllib.error.HTTPError) as caught:
