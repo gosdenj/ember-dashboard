@@ -362,6 +362,49 @@ class TheThreeViewsTests(_GasViewsFixture, unittest.TestCase):
         self.assertIn("week's average", text.lower())
 
 
+class TheWeekNumberTests(_GasViewsFixture, unittest.TestCase):
+    """The number over a column has to stay readable.
+
+    An estimate is drawn with a whisker over the top of it, showing how
+    far off the estimate could be. The number sits above the column, and
+    when the type got a point bigger the whisker started to cut through
+    the number - which reads as a figure that has been struck out. So the
+    number goes above the whisker instead.
+    """
+
+    def _columns(self, page):
+        return page.evaluate(
+            """() => Array.from(document.querySelectorAll('.slide svg g[data-day]'))
+                 .map((group) => {
+                   const label = group.querySelector('text');
+                   const whisker = group.querySelector('line[stroke="var(--plum)"]');
+                   return {
+                     labelY: label ? parseFloat(label.getAttribute('y')) : null,
+                     whiskerY: whisker ? parseFloat(whisker.getAttribute('y1')) : null,
+                   };
+                 })""")
+
+    def test_the_number_clears_the_band_over_the_estimate(self):
+        page = self._page()
+        self._switch(page, "week")
+        columns = self._columns(page)
+        page.close()
+        whiskers = [c for c in columns if c["whiskerY"] is not None]
+        self.assertTrue(whiskers, "no estimated day in the week view")
+        for column in whiskers:
+            self.assertGreaterEqual(
+                column["whiskerY"], column["labelY"],
+                "the band whisker cuts through the number")
+
+    def test_the_number_is_not_pushed_off_the_top_of_the_chart(self):
+        page = self._page()
+        self._switch(page, "week")
+        columns = self._columns(page)
+        page.close()
+        for column in columns:
+            self.assertGreaterEqual(column["labelY"], 12)
+
+
 class GapHonestyTests(_GasViewsFixture, unittest.TestCase):
     """A day the meter did not report is drawn as a gap."""
 

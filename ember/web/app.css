@@ -79,7 +79,7 @@ html, body {
   width: 800px; height: 100%;
   display: flex; flex-direction: column; overflow: hidden;
   background: var(--bg); color: var(--ink);
-  font-size: 13px;
+  font-size: 14px;
   position: relative;
   z-index: 1;
 }
@@ -108,16 +108,16 @@ html, body {
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, #141920, #11161d);
 }
-.slide-head .brand { font-weight: 700; letter-spacing: .14em; font-size: 12px; }
+.slide-head .brand { font-weight: 700; letter-spacing: .14em; font-size: 13px; }
 .slide-head .mark {
   width: 9px; height: 9px; border-radius: 50%; background: var(--ember);
   box-shadow: 0 0 0 3px var(--ember-soft); margin-right: 7px;
 }
-.slide-head .sub { font-size: 11.5px; color: var(--dim); }
+.slide-head .sub { font-size: 12.5px; color: var(--dim); }
 .slide-head .spacer { flex: 1; }
 
 .pill {
-  font-family: var(--mono); font-size: 10.5px; padding: 3px 8px; border-radius: 6px;
+  font-family: var(--mono); font-size: 11.5px; padding: 3px 8px; border-radius: 6px;
   border: 1px solid var(--line); color: var(--dim); background: rgba(255,255,255,.02);
 }
 .pill.live {
@@ -155,7 +155,7 @@ html, body {
 
 .slide-body {
   flex: 1; display: grid; grid-template-columns: 1fr 292px; gap: 9px;
-  padding: 9px; min-height: 0;
+  padding: 8px; min-height: 0;
 }
 .slide-body.s2, .slide-body.s3 { grid-template-rows: 1fr auto; }
 .slide-body.tall { grid-template-rows: 1fr; }
@@ -164,18 +164,18 @@ html, body {
 
 .panel {
   background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
-  padding: 11px 12px; display: flex; flex-direction: column;
+  padding: 9px 10px; display: flex; flex-direction: column;
   min-height: 0; overflow: hidden;
 }
-.p-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex: none; }
+.p-h { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex: none; }
 .p-h h4 {
-  font-size: 10px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase;
+  font-size: 11px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
   color: var(--dim); margin: 0;
 }
-.p-h .src { font-size: 9.5px; color: var(--dimmer); margin-left: auto; font-style: italic; }
+.p-h .src { font-size: 10.5px; color: var(--dimmer); margin-left: auto; font-style: italic; }
 .p-h .tabs { margin-left: auto; display: flex; gap: 3px; }
 .p-h .tabs span {
-  font-family: var(--mono); font-size: 9px; padding: 2px 6px; border-radius: 4px;
+  font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 4px;
   color: var(--dimmer); border: 1px solid transparent;
 }
 .p-h .tabs span.on { color: var(--ink); background: rgba(255,255,255,.06); border-color: var(--line); }
@@ -190,17 +190,17 @@ html, body {
 }
 .row:last-child { border-bottom: 0; }
 .row .nm {
-  flex: 1; font-size: 12px; color: var(--ink);
+  flex: 1; font-size: 13px; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.rows .row { padding: 3.5px 0; }
-.rows .row .nm { font-size: 11.5px; }
-.rows .row .t { font-size: 11.5px; }
-.row .t { font-family: var(--mono); font-size: 12px; color: var(--ink); }
-.row .t small { color: var(--dimmer); font-size: 9.5px; }
+.rows .row { padding: 2px 0; }
+.rows .row .nm { font-size: 12.5px; }
+.rows .row .t { font-size: 12.5px; }
+.row .t { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.row .t small { color: var(--dimmer); font-size: 10.5px; }
 
 .valve {
-  font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
   padding: 2px 6px; border-radius: 4px; flex: none;
 }
 .valve.open {
@@ -227,11 +227,11 @@ html, body {
 /* How many valves are in the room - only shown when there is more than
    one, because most rooms have just the one. */
 .row .nm .cnt {
-  font-family: var(--mono); font-size: 9px; color: var(--dimmer);
+  font-family: var(--mono); font-size: 10px; color: var(--dimmer);
   margin-left: 5px; letter-spacing: .02em;
 }
 .row .nm .low {
-  font-family: var(--mono); font-size: 9px; color: #E8654F;
+  font-family: var(--mono); font-size: 10px; color: #E8654F;
   background: rgba(232,101,79,.12); border-radius: 3px;
   padding: 1px 4px; margin-left: 5px;
 }
@@ -241,20 +241,20 @@ html, body {
 .tiles { display: grid; gap: 8px; }
 .tile {
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px;
-  padding: 9px 10px; min-width: 0;
+  padding: 7px 7px; min-width: 0;
 }
 .tile .k {
-  font-size: 9px; letter-spacing: .11em; text-transform: uppercase; color: var(--dimmer);
-  display: flex; align-items: center; gap: 5px; margin-bottom: 5px;
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--dimmer);
+  display: flex; align-items: center; gap: 4px; margin-bottom: 5px;
 }
 .tile .k i { width: 5px; height: 5px; border-radius: 50%; display: block; }
 .tile .v {
-  font-family: var(--mono); font-size: 19px; font-weight: 600; letter-spacing: -.03em;
+  font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: -.03em;
   line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tile .v small { font-size: 10px; color: var(--dim); font-weight: 400; margin-left: 2px; }
+.tile .v small { font-size: 11px; color: var(--dim); font-weight: 400; margin-left: 2px; }
 .tile .s {
-  font-size: 9.5px; color: var(--dimmer); margin-top: 4px;
+  font-size: 10.5px; color: var(--dimmer); margin-top: 4px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -265,12 +265,12 @@ html, body {
 }
 .kpi .u { font-size: .46em; color: var(--dim); font-weight: 400; margin-left: 3px; letter-spacing: 0; }
 .big { display: flex; align-items: baseline; gap: 10px; }
-.big .kpi { font-size: 34px; }
+.big .kpi { font-size: 35px; }
 .big .side { margin-left: auto; text-align: right; }
 .big .side .k {
-  font-size: 9px; letter-spacing: .11em; text-transform: uppercase; color: var(--dimmer);
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--dimmer);
 }
-.big .side .v { font-family: var(--mono); font-size: 14px; margin-top: 3px; }
+.big .side .v { font-family: var(--mono); font-size: 15px; margin-top: 3px; }
 
 .ember { color: var(--ember); }
 .teal { color: var(--teal); }
@@ -280,7 +280,7 @@ html, body {
 .dimmer { color: var(--dimmer); }
 
 .state {
-  display: inline-flex; align-items: center; gap: 6px; font-size: 11px;
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
   padding: 3px 8px; border-radius: 5px;
   background: var(--ember-soft); color: var(--ember); font-weight: 500;
 }
@@ -290,14 +290,14 @@ html, body {
 .bar > i { display: block; height: 4px; border-radius: 2px; }
 
 .legend {
-  display: flex; gap: 12px; font-size: 9.5px; color: var(--dim);
+  display: flex; gap: 12px; font-size: 10.5px; color: var(--dim);
   margin-top: 6px; flex: none; flex-wrap: wrap;
 }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
 .legend i { width: 8px; height: 8px; border-radius: 2px; display: block; }
 
 .svgwrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
-.fnote { font-size: 10.5px; color: var(--dim); line-height: 1.5; margin-top: 9px; }
+.fnote { font-size: 11.5px; color: var(--dim); line-height: 1.5; margin-top: 9px; }
 
 /* The weather, in the shape a phone shows it. */
 .wx { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
@@ -306,26 +306,26 @@ html, body {
 .wx-ico svg { display: block; }
 .wx-main { flex: 1 1 auto; min-width: 0; }
 .wx-day {
-  font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
   text-transform: uppercase; color: var(--dim);
 }
 .wx-cond {
-  font-family: var(--sans); font-size: 13.5px; color: var(--ink);
+  font-family: var(--sans); font-size: 14.5px; color: var(--ink);
   margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .wx-right { flex: 0 0 auto; text-align: right; }
 .wx-temp {
-  font-family: var(--mono); font-size: 19px; font-weight: 600; color: var(--ink);
+  font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--ink);
 }
-.wx-range { font-family: var(--mono); font-size: 10px; color: var(--dim); margin-top: 2px; }
+.wx-range { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-top: 2px; }
 .wx-sep { height: 1px; background: var(--line); margin: 9px 0 7px; }
 .wx-gas-label {
-  font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em;
   text-transform: uppercase; color: var(--dimmer); margin-bottom: 2px;
 }
 .fnote b { color: var(--ink); font-weight: 500; }
 .foot {
-  font-size: 9.5px; color: var(--dimmer); font-style: italic;
+  font-size: 10.5px; color: var(--dimmer); font-style: italic;
   margin-top: auto; padding-top: 6px;
 }
 .s3grid {
@@ -362,7 +362,7 @@ html, body {
   .slide {
     /* The deck sits below the 42px header, so the slide fills what is
      * left of the screen. */
-    width: 100%; height: auto; min-height: calc(100vh - 42px); font-size: 14px;
+    width: 100%; height: auto; min-height: calc(100vh - 42px); font-size: 15px;
     padding-bottom: 24px;
   }
   .slide-body, .s3grid {
@@ -377,12 +377,12 @@ html, body {
   .p-h .src { margin-left: 0; flex-basis: 100%; }
   .p-h .tabs { margin-left: auto; }
   .rooms-grid { grid-template-columns: 1fr; }
-  .rows .row .nm { font-size: 13px; }
-  .rows .row .t { font-size: 13px; }
-  .row .t { font-size: 13px; }
-  .tile .v { font-size: 21px; }
-  .tile .s { font-size: 10.5px; }
-  .big .kpi { font-size: 40px; }
+  .rows .row .nm { font-size: 14px; }
+  .rows .row .t { font-size: 14px; }
+  .row .t { font-size: 14px; }
+  .tile .v { font-size: 22px; }
+  .tile .s { font-size: 11.5px; }
+  .big .kpi { font-size: 41px; }
   .svgwrap { min-height: 190px; }
   .slide-body .tiles { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important; }
   .weekstrip { overflow-x: auto; }
@@ -409,10 +409,10 @@ html, body {
   gap: 6px; padding: 10px 2px;
 }
 .trouble .t {
-  font-size: 12px; line-height: 1.35; color: var(--ember);
+  font-size: 13px; line-height: 1.35; color: var(--ember);
 }
 .trouble .h {
-  font-size: 10.5px; line-height: 1.4; color: var(--dim);
+  font-size: 11.5px; line-height: 1.4; color: var(--dim);
 }
 
 /* -- the month ---------------------------------------------------------- */
@@ -430,7 +430,7 @@ html, body {
   gap: 4px;
 }
 .mh {
-  font-family: var(--mono); font-size: 9px; color: var(--dimmer);
+  font-family: var(--mono); font-size: 10px; color: var(--dimmer);
   text-align: center; padding-bottom: 2px;
 }
 .mcell {
@@ -442,7 +442,7 @@ html, body {
   display: flex; align-items: center; justify-content: center;
 }
 .mcell span {
-  font-family: var(--mono); font-size: 9.5px; color: rgba(232,237,242,.75);
+  font-family: var(--mono); font-size: 10.5px; color: rgba(232,237,242,.75);
 }
 .mcell.none {
   border-style: dashed; border-color: var(--line); background: transparent;

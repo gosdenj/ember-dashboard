@@ -534,35 +534,35 @@ function ringDiagram(heating) {
       ${targetHeat === null ? '' : targetTick(targetHeat, homeX, homeY, homeR)}
       ${ringIcon('home', homeX, homeY - 36, 22, heatInk)}
       <text x="${homeX}" y="${homeY + 10}" text-anchor="middle" fill="${heatInk}"
-            font-family="JetBrains Mono,monospace" font-size="30" font-weight="600">${home === null ? '—' : num(home) + '°'}</text>
+            font-family="JetBrains Mono,monospace" font-size="31" font-weight="600">${home === null ? '—' : num(home) + '°'}</text>
       <text x="${homeX}" y="${homeY + 34}" text-anchor="middle" fill="var(--dim)"
-            font-family="Outfit,sans-serif" font-size="10.5" letter-spacing="1.8">HOME</text>
+            font-family="Outfit,sans-serif" font-size="11.5" letter-spacing="1.8">HOME</text>
     </g>
 
     <g data-ring="boiler">
       <circle cx="${boilerX}" cy="${boilerY}" r="${satR}" fill="#11161d" stroke="${firing === true ? 'var(--ember)' : 'rgba(255,255,255,.2)'}" stroke-width="2.6"/>
       ${firing === true ? ringIcon('flame', boilerX, boilerY - 17, 20, 'var(--ember)') : ''}
       <text x="${boilerX}" y="${boilerY + (firing === true ? 20 : 5)}" text-anchor="middle" fill="${boilerColour}"
-            font-family="JetBrains Mono,monospace" font-size="11" font-weight="600">${boilerWord}</text>
+            font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">${boilerWord}</text>
       <text x="${boilerX}" y="92" text-anchor="middle" fill="var(--dim)"
-            font-family="Outfit,sans-serif" font-size="9.5" letter-spacing="1.4">BOILER</text>
+            font-family="Outfit,sans-serif" font-size="10.5" letter-spacing="1.4">BOILER</text>
     </g>
 
     <g data-ring="outside">
       <circle cx="${outX}" cy="${outY}" r="${satR}" fill="#11161d" stroke="${outsideInk}" stroke-width="2.6"/>
       ${ringIcon(outsideIcon(outside), outX, outY - 17, 20, outsideInk)}
       <text x="${outX}" y="${outY + 20}" text-anchor="middle" fill="${outsideInk}"
-            font-family="JetBrains Mono,monospace" font-size="17" font-weight="600">${outside === null ? '—' : num(outside) + '°'}</text>
+            font-family="JetBrains Mono,monospace" font-size="18" font-weight="600">${outside === null ? '—' : num(outside) + '°'}</text>
       <text x="${outX}" y="92" text-anchor="middle" fill="var(--dim)"
-            font-family="Outfit,sans-serif" font-size="9.5" letter-spacing="1.4">OUTSIDE</text>
+            font-family="Outfit,sans-serif" font-size="10.5" letter-spacing="1.4">OUTSIDE</text>
     </g>
 
     <g data-ring="boost">
       <circle cx="${boostX}" cy="${boostY}" r="${boostR}" fill="#11161d" stroke="${boostLeft ? 'var(--ember)' : 'rgba(255,255,255,.18)'}" stroke-width="2.6"/>
       <text x="${boostX}" y="${boostY + 5}" text-anchor="middle" fill="${boostLeft ? 'var(--ink)' : 'var(--dimmer)'}"
-            font-family="JetBrains Mono,monospace" font-size="13" font-weight="600">${boostText}</text>
+            font-family="JetBrains Mono,monospace" font-size="14" font-weight="600">${boostText}</text>
       <text x="${boostX}" y="198" text-anchor="middle" fill="var(--dim)"
-            font-family="Outfit,sans-serif" font-size="9.5" letter-spacing="1.4">${boostLabel}</text>
+            font-family="Outfit,sans-serif" font-size="10.5" letter-spacing="1.4">${boostLabel}</text>
     </g>
   </svg>`;
 }
@@ -627,7 +627,7 @@ function slideHeating(payload) {
         ${problemFor('hive') ? trouble(problemFor('hive')) : `<div class="big">
           <div>
             <div class="kpi">${heating.home_temp === null || heating.home_temp === undefined ? '—' : num(heating.home_temp)}<span class="u">°C</span></div>
-            <div class="dimmer" style="font-size:10.5px;margin-top:5px">target ${num(heating.target_temp)}°C &middot; inside</div>
+            <div class="dimmer" style="font-size:11.5px;margin-top:5px">target ${num(heating.target_temp)}°C &middot; inside</div>
           </div>
           <div class="side" style="text-align:right">
             <span class="state ${heating.boiler_on === true ? '' : 'off'}">
@@ -715,7 +715,7 @@ function chartDayShape(gas, width, height) {
     const anchor = hour === 0 ? 'start' : (hour === 23 ? 'end' : 'middle');
     const dx = hour === 0 ? 0 : (hour === 23 ? 0 : barWidth / 2);
     return `<text x="${(x + dx).toFixed(1)}" y="${height - 3}" fill="var(--dimmer)"
-      font-family="Outfit,sans-serif" font-size="9.5" text-anchor="${anchor}">${esc(label)}</text>`;
+      font-family="Outfit,sans-serif" font-size="10.5" text-anchor="${anchor}">${esc(label)}</text>`;
   }).join('');
 
   return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="100%" style="max-height:100%">
@@ -815,6 +815,16 @@ function chartWeekOfDays(gas, width, height) {
           width="${barWidth.toFixed(1)}" height="${measuredHeight.toFixed(1)}"
           rx="3" fill="var(--teal)"${column.partial ? ' opacity=".5"' : ''}/>`;
       }
+      // The band, as a whisker over the top of the estimate. It says how
+      // far off the estimate could be, so the number has to clear it: a
+      // figure with a line through it reads as struck out.
+      const band = column.estimate !== null
+        ? (column.band !== undefined && column.band !== null
+          ? column.band : (est ? est.band : null))
+        : null;
+      // Where the number sits: above the bar, and above the whisker
+      // when there is one.
+      let labelTop = baseline - scale(column.total);
       if (column.estimate !== null) {
         // The estimate sits on top of what has been measured, in plum -
         // the colour every estimate in Ember wears.
@@ -825,19 +835,17 @@ function chartWeekOfDays(gas, width, height) {
           body += `<rect x="${x.toFixed(1)}" y="${to.toFixed(1)}" width="${barWidth.toFixed(1)}"
             height="${(from - to).toFixed(1)}" rx="3" fill="var(--plum)" opacity=".85"/>`;
         }
-        // The band, as a whisker over the top of the estimate.
-        const band = column.band !== undefined && column.band !== null
-          ? column.band : (est ? est.band : null);
         if (band) {
           const bandTop = baseline - scale(column.total + band);
           body += `<line x1="${x.toFixed(1)}" y1="${bandTop.toFixed(1)}"
             x2="${(x + barWidth).toFixed(1)}" y2="${bandTop.toFixed(1)}"
             stroke="var(--plum)" stroke-width="1" stroke-dasharray="2 2" opacity=".8"/>`;
+          labelTop = Math.min(labelTop, bandTop);
         }
       }
-      label = `<text x="${centre.toFixed(1)}" y="${(baseline - scale(column.total) - 7).toFixed(1)}"
+      label = `<text x="${centre.toFixed(1)}" y="${Math.max(12, labelTop - 7).toFixed(1)}"
         fill="${column.estimate !== null ? 'var(--plum)' : 'var(--ink)'}"
-        font-family="JetBrains Mono,monospace" font-size="10" text-anchor="middle"
+        font-family="JetBrains Mono,monospace" font-size="11" text-anchor="middle"
         opacity=".9">${num(column.total, 2)}</text>`;
     }
     // Each column carries its date, so the chart can be asked what it
@@ -845,7 +853,7 @@ function chartWeekOfDays(gas, width, height) {
     return `<g data-day="${esc(column.day.date || '')}">` + body + label +
       `<text x="${centre.toFixed(1)}" y="${height - 5}"
       fill="${column.isToday ? 'var(--ember)' : 'var(--dimmer)'}" font-family="Outfit,sans-serif"
-      font-size="10" text-anchor="middle">${esc(column.day.label || '')}</text></g>`;
+      font-size="11" text-anchor="middle">${esc(column.day.label || '')}</text></g>`;
   }).join('');
 
   let averageLine = '';
@@ -1018,7 +1026,7 @@ function gasChartPanel(gas) {
     </div>
     ${body}
     <div class="legend">${legend}</div>
-    <div class="dimmer" style="font-size:9.5px;margin-top:3px">${note}</div>
+    <div class="dimmer" style="font-size:10.5px;margin-top:3px">${note}</div>
   </div>`;
 }
 
@@ -1135,14 +1143,14 @@ function slideGas(payload) {
         <div class="big">
           <div>
             <div class="kpi ${est ? 'plum' : ''}">${gas.today_reported ? num(gas.today_m3, 2) : (est ? num(est.m3, 2) : '—')}${gas.today_reported || est ? `<span class="u">${unit}</span>` : ''}</div>
-            <div class="${est ? 'plum' : 'dimmer'}" style="font-size:10.5px;margin-top:5px">${gas.today_reported
+            <div class="${est ? 'plum' : 'dimmer'}" style="font-size:11.5px;margin-top:5px">${gas.today_reported
       ? (gas.unit === 'unknown'
         ? 'the unit is unknown, so this is not converted'
         : (derivedKwh(gas, gas.today_m3) === null ? 'meter reports kWh' : `${num(gas.today_kwh, 1)} kWh &middot; at ${num(gas.calorific, 2)} kWh/m³`))
       : (est ? estimatedLine(gas, est) : (gas.today_note || 'today has not been reported yet'))}</div>
-            ${!gas.today_reported && !est && gas.today_note ? `<div class="dimmer" style="font-size:10.5px;margin-top:4px">${esc(gas.today_note)}</div>` : ''}
-            ${!gas.today_reported && est && gas.today_note ? `<div class="dimmer" style="font-size:10.5px;margin-top:4px">${esc(gas.today_note)}</div>` : ''}
-            ${gas.meter_note ? `<div class="dimmer" style="font-size:10.5px;margin-top:4px">${esc(gas.meter_note)}</div>` : ''}
+            ${!gas.today_reported && !est && gas.today_note ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${esc(gas.today_note)}</div>` : ''}
+            ${!gas.today_reported && est && gas.today_note ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${esc(gas.today_note)}</div>` : ''}
+            ${gas.meter_note ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${esc(gas.meter_note)}</div>` : ''}
           </div>
         </div>
         <div class="rows" style="margin-top:10px">
@@ -1151,7 +1159,7 @@ function slideGas(payload) {
           <div class="row"><span class="nm">Standing charge</span><span class="t">${gas.standing_p === null || gas.standing_p === undefined ? '\u2014' : money(gas.standing_p / 100)}</span></div>
           <div class="row"><span class="nm">Unit rate</span><span class="t">${gas.unit_rate_p === null || gas.unit_rate_p === undefined ? '\u2014' : num(gas.unit_rate_p, 2) + 'p/kWh'}</span></div>
         </div>
-        ${costExplained ? `<div class="dimmer" style="font-size:9.5px;margin-top:5px">the cost is the energy charge plus the standing charge</div>` : ''}
+        ${costExplained ? `<div class="dimmer" style="font-size:10.5px;margin-top:5px">the cost is the energy charge plus the standing charge</div>` : ''}
         ${gas.unit_reason ? `<div class="foot">Unit: ${esc(gas.unit_label || gas.unit)} &mdash; ${esc(gas.unit_reason)}.</div>` : ''}
       </div>
 
@@ -1159,10 +1167,10 @@ function slideGas(payload) {
         <div class="p-h"><h4>Today at a glance</h4></div>
         <div class="tiles" style="grid-template-columns:repeat(6,1fr)">${tileHtml}</div>
         ${!gas.today_reported && lastReportedLine(gas)
-      ? `<div class="dimmer" style="font-size:10.5px;margin-top:6px">${lastReportedLine(gas)}</div>`
+      ? `<div class="dimmer" style="font-size:11.5px;margin-top:6px">${lastReportedLine(gas)}</div>`
       : ''}
         ${!gas.today_reported && gas.meter_note_detail
-      ? `<div class="dimmer" style="font-size:10.5px;margin-top:2px">${esc(gas.meter_note_detail)}</div>`
+      ? `<div class="dimmer" style="font-size:11.5px;margin-top:2px">${esc(gas.meter_note_detail)}</div>`
       : ''}
       </div>
     </div>
@@ -1333,8 +1341,8 @@ function slideToday(payload) {
     <div class="wx-sep"></div>`;
 
   const forecastBody = forecast.available ? `
-    <div class="kpi" style="font-size:34px;color:var(--plum)">${num(forecast.tomorrow_m3, 2)}${unit ? `<span class="u">${unit}</span>` : ''}</div>
-    <div class="dimmer" style="font-size:10.5px;margin-top:5px">${forecastLine(gas, forecast)}</div>
+    <div class="kpi" style="font-size:35px;color:var(--plum)">${num(forecast.tomorrow_m3, 2)}${unit ? `<span class="u">${unit}</span>` : ''}</div>
+    <div class="dimmer" style="font-size:11.5px;margin-top:5px">${forecastLine(gas, forecast)}</div>
     <div class="fnote" style="margin-top:10px">
       ${num(forecast.outside_mean, 1)}°C forecast &middot; ${num(forecast.degree_days, 1)} degree-days at a ${num(forecast.base_temperature, 0)}°C base<br>
       Fitted on ${forecast.model ? forecast.model.days_used : 0} days of your own readings.
@@ -1352,25 +1360,25 @@ function slideToday(payload) {
         ${trouble(problemFor('octopus') || problemFor('hive'))}
         <div class="big">
           <div>
-            <div class="kpi" style="font-size:44px${est ? ';color:var(--plum)' : ''}">${gas.today_reported ? num(gas.today_m3, 2) + `<span class="u">${unit}</span>` : (est ? num(est.m3, 2) + `<span class="u">${unit}</span>` : '—')}</div>
-            <div class="${est ? 'plum' : 'dimmer'}" style="font-size:11px;margin-top:6px">${gas.today_reported
+            <div class="kpi" style="font-size:45px${est ? ';color:var(--plum)' : ''}">${gas.today_reported ? num(gas.today_m3, 2) + `<span class="u">${unit}</span>` : (est ? num(est.m3, 2) + `<span class="u">${unit}</span>` : '—')}</div>
+            <div class="${est ? 'plum' : 'dimmer'}" style="font-size:12px;margin-top:6px">${gas.today_reported
       ? `${money(gas.cost_today)} so far &middot; ${hours(heating.heating_today_minutes)} of heating`
       : (est ? `about ${money(est.cost)} estimated &middot; ${hours(heating.heating_today_minutes)} of heating`
         : `${lagNote(gas)} &middot; ${hours(heating.heating_today_minutes)} of heating`)}</div>
-            ${gas.meter_note ? `<div class="dimmer" style="font-size:10.5px;margin-top:4px">${esc(gas.meter_note)}</div>` : ''}
+            ${gas.meter_note ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${esc(gas.meter_note)}</div>` : ''}
           </div>
           <div class="side">
             <div class="k">vs 7-day average</div>
             <div class="v ember">${comparison(payload)}${comparison(payload) === '—' ? '' : '%'}</div>
             <div class="k" style="margin-top:11px">month budget</div>
-            <div class="v">${money(budget.spend)}<span style="color:var(--dimmer);font-size:10px"> of ${money(budget.budget)}</span></div>
+            <div class="v">${money(budget.spend)}<span style="color:var(--dimmer);font-size:11px"> of ${money(budget.budget)}</span></div>
           </div>
         </div>
         <div class="svgwrap" style="margin-top:8px">
           ${chartDayShape(gas, width, height)
     || `<div class="fnote">${chartEmpty(gas, 'day')}</div>`}
         </div>
-        <div class="dimmer" style="font-size:9.5px;margin-top:2px">
+        <div class="dimmer" style="font-size:10.5px;margin-top:2px">
           the shape of a day &middot; the average use in each hour, over the last
           ${num((gas.hourly_profile || {}).days || 0, 0)} days
         </div>
@@ -1386,7 +1394,7 @@ function slideToday(payload) {
       <div class="panel" style="grid-column:1/-1">
         <div class="p-h"><h4>The week</h4>${weekPill}<span class="src">${weekCaption}</span></div>
         <div class="tiles weekstrip" style="grid-template-columns:repeat(7,1fr)">${week}</div>
-        ${weekNote ? `<div class="dimmer" style="font-size:10.5px;margin-top:6px">${weekNote}</div>` : ''}
+        ${weekNote ? `<div class="dimmer" style="font-size:11.5px;margin-top:6px">${weekNote}</div>` : ''}
       </div>
     </div>
   </div>`;

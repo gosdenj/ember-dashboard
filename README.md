@@ -165,6 +165,28 @@ for the one before — the same as the arrow keys. A drag has to be longer than
 60px and clearly across rather than down, so reaching for a control does not
 change the slide by accident.
 
+### The type
+
+The panel is drawn at 800×480 and shown 1:1, so every size in `app.css` is a
+pixel count against a real 7" screen. **The type scale is the thing that makes
+the panel readable from across the room** — the big figures are the ones you
+want at a glance, the small ones are the ones you lean in for.
+
+Every size went up by one point (9px became 10px, 34px became 35px, and so
+on), because the whole scale moved up together and the hierarchy stayed
+exactly where it was. The cost was space, and the space came out of the
+padding rather than out of the type: the panels and the tiles gave up a
+pixel or two of padding, the rows gave up a fraction of a pixel each, and
+the tile labels tightened their tracking.
+
+Two things worth knowing about that:
+
+- **The tile labels must not wrap.** A wrapped label makes every tile in the
+  row taller, because the grid stretches them, and that squeezes the row
+  above it. One label wrapping is enough to break a slide.
+- **The settings page keeps its own sizes.** It is a web page for a phone or
+  a laptop, not the panel, and it is not drawn at 800×480.
+
 ### The heating panel
 
 Four rings: **home** in the middle, the **boiler** and the **outside** in the
