@@ -318,7 +318,7 @@ html, body {
   font-family: var(--mono); font-size: 19px; font-weight: 600; color: var(--ink);
 }
 .wx-range { font-family: var(--mono); font-size: 10px; color: var(--dim); margin-top: 2px; }
-.wx-sep { height: 1px; background: var(--line); margin: 13px 0 11px; }
+.wx-sep { height: 1px; background: var(--line); margin: 9px 0 7px; }
 .wx-gas-label {
   font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em;
   text-transform: uppercase; color: var(--dimmer); margin-bottom: 2px;

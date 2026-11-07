@@ -485,10 +485,15 @@ class TheRingLayoutTests(_PanelFixture, unittest.TestCase):
     def test_nothing_joins_the_rings_up(self):
         """The dotted lines said "these are connected", which the
         layout already says, and they ran through the numbers.
+
+        The setpoint's notch is a line too, but it is a mark on one
+        ring and not a line joining the rings together, so it is
+        counted apart.
         """
         page = self._page()
         lines = page.evaluate(
-            "() => document.querySelectorAll('.slide svg line').length")
+            "() => document.querySelectorAll('.slide svg line"
+            ":not([data-tick=\"target\"])').length")
         page.close()
         self.assertEqual(lines, 0, "there are still lines between the rings")
 

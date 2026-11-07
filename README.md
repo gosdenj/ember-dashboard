@@ -229,7 +229,8 @@ chart says which is which.
 
 **Today's figures** are the day's volume and what it cost, broken down into
 the energy charge and the standing charge — the two add up to the cost above
-them — with the unit rate and the unit itself. The panel says which unit the
+them — with the unit rate and the unit itself. The panel says in words that the
+cost is **the energy charge plus the standing charge**, and says which unit the
 readings are in and **why**, so the numbers can be argued with.
 
 **Today at a glance** is six tiles: gas today, cost, the 7-day average, how
@@ -260,6 +261,10 @@ the heating hours beside it. Next to the heading is the **week's total** in a
 pill — the sum of the days that have a cost, and nothing else. When any of it
 is an estimate the pill carries a tilde and the plum of an estimate, so it never
 claims to be more than it knows.
+
+The heating hours are **the time the boiler was actually on**, and a line under
+the strip says what is not settled: the days still waiting for the meter, and
+the days Ember did not watch all of.
 
 ### The header
 
@@ -431,10 +436,11 @@ Three things make the count honest:
 
 So Ember publishes, for every day, **how much of it it was watching**, and
 says so where it matters: *"Heating today"* and *"Heating this week"* read
-*"at least 2h 00m"* when the count is a lower bound; the week's tiles mark a
-partly-watched day with a **+**; and a day Ember was not running says **not
-recorded**, not `0h 00m`, because a zero is a claim — and the claim would be
-"the heating never came on", which is not what happened.
+*"at least 2h 00m"* when the count is a lower bound; the Status panel says the
+hours come from **Ember's own polls, only while it was watching**; the week's
+tiles mark a partly-watched day with a **+**; and a day Ember was not running
+says **not recorded**, not `0h 00m`, because a zero is a claim — and the claim
+would be "the heating never came on", which is not what happened.
 
 The count is still a sample — the boiler's state is only known at the moments
 Ember polled it, so a run shorter than the poll interval can be missed. At two

@@ -623,7 +623,7 @@ function slideHeating(payload) {
       </div>
 
       <div class="panel">
-        <div class="p-h"><h4>Status</h4></div>
+        <div class="p-h"><h4>Status</h4><span class="src">Ember's polls &middot; only while it was watching</span></div>
         ${problemFor('hive') ? trouble(problemFor('hive')) : `<div class="big">
           <div>
             <div class="kpi">${heating.home_temp === null || heating.home_temp === undefined ? '—' : num(heating.home_temp)}<span class="u">°C</span></div>
@@ -1138,6 +1138,9 @@ function slideGas(payload) {
           <div class="row"><span class="nm">Standing charge</span><span class="t">${gas.standing_p === null || gas.standing_p === undefined ? '\u2014' : money(gas.standing_p / 100)}</span></div>
           <div class="row"><span class="nm">Unit rate</span><span class="t">${gas.unit_rate_p === null || gas.unit_rate_p === undefined ? '\u2014' : num(gas.unit_rate_p, 2) + 'p/kWh'}</span></div>
         </div>
+        ${gas.energy_p !== null && gas.energy_p !== undefined
+    && gas.standing_p !== null && gas.standing_p !== undefined
+    ? `<div class="dimmer" style="font-size:10.5px;margin-top:6px">The cost today is the energy charge plus the standing charge.</div>` : ''}
         ${gas.unit_reason ? `<div class="foot">Unit: ${esc(gas.unit_label || gas.unit)} &mdash; ${esc(gas.unit_reason)}.</div>` : ''}
       </div>
 
@@ -1265,6 +1268,16 @@ function slideToday(payload) {
     ? `<span class="pill cost${weekApprox ? ' approx' : ''}">${weekApprox ? '~' : ''}${money(weekTotal)}</span>`
     : '';
 
+  /* What the strip is showing, and what is not settled.
+   *
+   * The heating hours are Ember's own count of the polls it saw the
+   * boiler on, so they are the time the boiler was actually on. That
+   * goes in the heading, where there is room for it, and the note
+   * under the strip says what is not settled - the days still waiting
+   * for the meter, and the days Ember did not watch all of.
+   */
+  const weekCaption = 'the heating hours are the time the boiler was actually on';
+
   const weather = payload.weather || {};
   const wxToday = weather.today || {};
   const wxTomorrow = weather.tomorrow || {};
@@ -1311,11 +1324,11 @@ function slideToday(payload) {
   const forecastBody = forecast.available ? `
     <div class="kpi" style="font-size:34px;color:var(--plum)">${num(forecast.tomorrow_m3, 2)}${unit ? `<span class="u">${unit}</span>` : ''}</div>
     <div class="dimmer" style="font-size:10.5px;margin-top:5px">${forecastLine(gas, forecast)}</div>
-    <div class="fnote" style="margin-top:14px">
+    <div class="fnote" style="margin-top:10px">
       ${num(forecast.outside_mean, 1)}°C forecast &middot; ${num(forecast.degree_days, 1)} degree-days at a ${num(forecast.base_temperature, 0)}°C base<br>
       Fitted on ${forecast.model ? forecast.model.days_used : 0} days of your own readings.
     </div>` : `
-    <div class="fnote" style="margin-top:14px">
+    <div class="fnote" style="margin-top:10px">
       Not enough history yet to forecast.<br>
       ${esc(forecast.reason || '')}
     </div>`;
@@ -1360,8 +1373,9 @@ function slideToday(payload) {
       </div>
 
       <div class="panel" style="grid-column:1/-1">
-        <div class="p-h"><h4>The week</h4>${weekPill}</div>
+        <div class="p-h"><h4>The week</h4>${weekPill}<span class="src">${weekCaption}</span></div>
         <div class="tiles weekstrip" style="grid-template-columns:repeat(7,1fr)">${week}</div>
+        ${weekNote ? `<div class="dimmer" style="font-size:10.5px;margin-top:6px">${weekNote}</div>` : ''}
       </div>
     </div>
   </div>`;
