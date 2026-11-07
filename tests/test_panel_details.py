@@ -152,19 +152,36 @@ class StatusTileTests(_PanelFixture, unittest.TestCase):
     def test_today_is_not_one_of_the_days(self):
         """The last day in the window is today, and today is half a
         day. It must not be in the average.
+
+        It is not enough to ask whether today's minutes are smaller
+        than the average. On a cold evening today is the bigger
+        number, and that is not a bug - so a test that says so goes
+        red in the evening and green in the morning, which tells you
+        about the clock and not about the code.
+
+        The check is the one that does not move with the time of day:
+        the average is the mean of the last seven days, and the last
+        seven days include today. So the average is not that mean.
         """
         from zoneinfo import ZoneInfo
         tz = ZoneInfo("Europe/London")
         days = self.history.heating_minutes_by_day(21, tz)
-        today_minutes = days[-1]["minutes"]
         heating = self.dashboard.payload()["heating"]
         average = heating["heating_daily_average_minutes"]
         if average is None:
             self.skipTest("no whole days of heating to average")
-        # Today is shorter than a whole day (it is only half past), so
-        # a figure that used it would be smaller than the average of
-        # the whole days.
-        self.assertGreaterEqual(average, today_minutes)
+        whole = [entry["minutes"] for entry in days[-8:-1]
+                 if entry["minutes"] > 0]
+        self.assertTrue(whole)
+        # The mean of the last seven days, today included - which is
+        # what the average would be if today were in it.
+        with_today = list(whole)
+        if days[-1]["minutes"] > 0:
+            with_today.append(days[-1]["minutes"])
+        last_seven = sum(with_today) / len(with_today)
+        if abs(last_seven - average) <= 0.05:
+            self.skipTest("today happens to be the average of the others")
+        self.assertNotAlmostEqual(average, round(last_seven, 1), places=1)
 
 
 class TheRoomsSummaryTests(_PanelFixture, unittest.TestCase):
