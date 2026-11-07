@@ -536,16 +536,16 @@ function ringDiagram(heating) {
       <text x="${homeX}" y="${homeY + 10}" text-anchor="middle" fill="${heatInk}"
             font-family="JetBrains Mono,monospace" font-size="31" font-weight="600">${home === null ? '—' : num(home) + '°'}</text>
       <text x="${homeX}" y="${homeY + 34}" text-anchor="middle" fill="var(--dim)"
-            font-family="Outfit,sans-serif" font-size="11.5" letter-spacing="1.8">HOME</text>
+            font-family="Outfit,sans-serif" font-size="12" letter-spacing="1.8">HOME</text>
     </g>
 
     <g data-ring="boiler">
       <circle cx="${boilerX}" cy="${boilerY}" r="${satR}" fill="#11161d" stroke="${firing === true ? 'var(--ember)' : 'rgba(255,255,255,.2)'}" stroke-width="2.6"/>
       ${firing === true ? ringIcon('flame', boilerX, boilerY - 17, 20, 'var(--ember)') : ''}
       <text x="${boilerX}" y="${boilerY + (firing === true ? 20 : 5)}" text-anchor="middle" fill="${boilerColour}"
-            font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">${boilerWord}</text>
+            font-family="JetBrains Mono,monospace" font-size="12.5" font-weight="600">${boilerWord}</text>
       <text x="${boilerX}" y="92" text-anchor="middle" fill="var(--dim)"
-            font-family="Outfit,sans-serif" font-size="10.5" letter-spacing="1.4">BOILER</text>
+            font-family="Outfit,sans-serif" font-size="11" letter-spacing="1.4">BOILER</text>
     </g>
 
     <g data-ring="outside">
@@ -554,7 +554,7 @@ function ringDiagram(heating) {
       <text x="${outX}" y="${outY + 20}" text-anchor="middle" fill="${outsideInk}"
             font-family="JetBrains Mono,monospace" font-size="18" font-weight="600">${outside === null ? '—' : num(outside) + '°'}</text>
       <text x="${outX}" y="92" text-anchor="middle" fill="var(--dim)"
-            font-family="Outfit,sans-serif" font-size="10.5" letter-spacing="1.4">OUTSIDE</text>
+            font-family="Outfit,sans-serif" font-size="11" letter-spacing="1.4">OUTSIDE</text>
     </g>
 
     <g data-ring="boost">
@@ -562,7 +562,7 @@ function ringDiagram(heating) {
       <text x="${boostX}" y="${boostY + 5}" text-anchor="middle" fill="${boostLeft ? 'var(--ink)' : 'var(--dimmer)'}"
             font-family="JetBrains Mono,monospace" font-size="14" font-weight="600">${boostText}</text>
       <text x="${boostX}" y="198" text-anchor="middle" fill="var(--dim)"
-            font-family="Outfit,sans-serif" font-size="10.5" letter-spacing="1.4">${boostLabel}</text>
+            font-family="Outfit,sans-serif" font-size="11" letter-spacing="1.4">${boostLabel}</text>
     </g>
   </svg>`;
 }
@@ -627,7 +627,7 @@ function slideHeating(payload) {
         ${problemFor('hive') ? trouble(problemFor('hive')) : `<div class="big">
           <div>
             <div class="kpi">${heating.home_temp === null || heating.home_temp === undefined ? '—' : num(heating.home_temp)}<span class="u">°C</span></div>
-            <div class="dimmer" style="font-size:11.5px;margin-top:5px">target ${num(heating.target_temp)}°C &middot; inside</div>
+            <div class="dimmer" style="font-size:12px;margin-top:5px">target ${num(heating.target_temp)}°C &middot; inside</div>
           </div>
           <div class="side" style="text-align:right">
             <span class="state ${heating.boiler_on === true ? '' : 'off'}">
@@ -715,7 +715,7 @@ function chartDayShape(gas, width, height) {
     const anchor = hour === 0 ? 'start' : (hour === 23 ? 'end' : 'middle');
     const dx = hour === 0 ? 0 : (hour === 23 ? 0 : barWidth / 2);
     return `<text x="${(x + dx).toFixed(1)}" y="${height - 3}" fill="var(--dimmer)"
-      font-family="Outfit,sans-serif" font-size="10.5" text-anchor="${anchor}">${esc(label)}</text>`;
+      font-family="Outfit,sans-serif" font-size="11" text-anchor="${anchor}">${esc(label)}</text>`;
   }).join('');
 
   return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="100%" style="max-height:100%">
@@ -845,7 +845,7 @@ function chartWeekOfDays(gas, width, height) {
       }
       label = `<text x="${centre.toFixed(1)}" y="${Math.max(12, labelTop - 7).toFixed(1)}"
         fill="${column.estimate !== null ? 'var(--plum)' : 'var(--ink)'}"
-        font-family="JetBrains Mono,monospace" font-size="11" text-anchor="middle"
+        font-family="JetBrains Mono,monospace" font-size="11.5" text-anchor="middle"
         opacity=".9">${num(column.total, 2)}</text>`;
     }
     // Each column carries its date, so the chart can be asked what it
@@ -853,7 +853,7 @@ function chartWeekOfDays(gas, width, height) {
     return `<g data-day="${esc(column.day.date || '')}">` + body + label +
       `<text x="${centre.toFixed(1)}" y="${height - 5}"
       fill="${column.isToday ? 'var(--ember)' : 'var(--dimmer)'}" font-family="Outfit,sans-serif"
-      font-size="11" text-anchor="middle">${esc(column.day.label || '')}</text></g>`;
+      font-size="11.5" text-anchor="middle">${esc(column.day.label || '')}</text></g>`;
   }).join('');
 
   let averageLine = '';
@@ -980,7 +980,12 @@ function derivedKwh(gas, volume) {
 function gasChartPanel(gas) {
   const view = GAS_VIEWS[state.gasTab] ? state.gasTab : 'week';
   const width = 470;
-  const height = 210;
+  /* The chart is drawn in its own units and scaled to the space it has.
+   * A viewBox taller than the panel means the whole chart - and every
+   * label on it - is shrunk to fit, so the labels end up smaller than
+   * the type around them. This one is the height the panel actually
+   * has, so the chart is drawn at about the size it claims to be. */
+  const height = 180;
 
   let body = '';
   let legend = '';
@@ -1008,7 +1013,10 @@ function gasChartPanel(gas) {
       '<span><i style="background:var(--ice)"></i>the week\'s average</span>' +
       '<span><i style="background:transparent;border:1px dashed var(--line)"></i>not reported</span>';
     const estimated = (gas.week || []).filter((day) => day.estimated).length;
-    note = 'one column per day &middot; the dotted line is the week\'s average'
+    // The legend already says what the dotted line is, so this only has
+    // to say what is new: how many of the columns are estimates rather
+    // than readings, and why.
+    note = 'one column per day'
       + (estimated ? ' &middot; ' + estimated + ' not reported yet, so estimated' : '');
   }
 
@@ -1026,7 +1034,7 @@ function gasChartPanel(gas) {
     </div>
     ${body}
     <div class="legend">${legend}</div>
-    <div class="dimmer" style="font-size:10.5px;margin-top:3px">${note}</div>
+    <div class="dimmer" style="font-size:12px;margin-top:2px">${note}</div>
   </div>`;
 }
 
@@ -1130,17 +1138,17 @@ function slideGas(payload) {
         <div class="big">
           <div>
             <div class="kpi ${est ? 'plum' : ''}">${gas.today_reported ? num(gas.today_m3, 2) : (est ? num(est.m3, 2) : '—')}${gas.today_reported || est ? `<span class="u">${unit}</span>` : ''}</div>
-            <div class="${est ? 'plum' : 'dimmer'}" style="font-size:11.5px;margin-top:5px">${gas.today_reported
+            <div class="${est ? 'plum' : 'dimmer'}" style="font-size:12px;margin-top:5px">${gas.today_reported
       ? (gas.unit === 'unknown'
         ? 'the unit is unknown, so this is not converted'
         : (derivedKwh(gas, gas.today_m3) === null ? 'meter reports kWh' : `${num(gas.today_kwh, 1)} kWh &middot; at ${num(gas.calorific, 2)} kWh/m³`))
       : (est ? estimatedLine(gas, est) : (gas.today_note || 'today has not been reported yet'))}</div>
-            ${!gas.today_reported && !est && gas.today_note ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${esc(gas.today_note)}</div>` : ''}
-            ${!gas.today_reported && est && gas.today_note ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${esc(gas.today_note)}</div>` : ''}
-            ${gas.meter_note ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${esc(gas.meter_note)}</div>` : ''}
+            ${!gas.today_reported && !est && gas.today_note ? `<div class="dimmer" style="font-size:12px;margin-top:4px">${esc(gas.today_note)}</div>` : ''}
+            ${!gas.today_reported && est && gas.today_note ? `<div class="dimmer" style="font-size:12px;margin-top:4px">${esc(gas.today_note)}</div>` : ''}
+            ${gas.meter_note ? `<div class="dimmer" style="font-size:12px;margin-top:4px">${esc(gas.meter_note)}</div>` : ''}
           </div>
         </div>
-        <div class="rows" style="margin-top:10px">
+        <div class="rows" style="margin-top:8px">
           <div class="row"><span class="nm">Cost today</span><span class="t ${est ? 'plum' : ''}">${est && est.cost !== null && est.cost !== undefined ? '~' + money(est.cost) : money(gas.cost_today)}${est ? ' <small>est</small>' : (gas.cost_note ? ' <small>' + esc(gas.cost_note) + '</small>' : '')}</span></div>
           <div class="row"><span class="nm">Energy charge</span><span class="t ${est ? 'plum' : ''}">${est && gas.unit_rate_p ? '~' + money(est.m3 * (gas.calorific || 0) * gas.unit_rate_p / 100) : (gas.energy_p === null || gas.energy_p === undefined ? '—' : money(gas.energy_p / 100))}${est ? ' <small>est</small>' : ''}</span></div>
           <div class="row"><span class="nm">Standing charge</span><span class="t">${gas.standing_p === null || gas.standing_p === undefined ? '\u2014' : money(gas.standing_p / 100)}</span></div>
@@ -1153,10 +1161,10 @@ function slideGas(payload) {
         <div class="p-h"><h4>Today at a glance</h4></div>
         <div class="tiles" style="grid-template-columns:repeat(6,1fr)">${tileHtml}</div>
         ${!gas.today_reported && lastReportedLine(gas)
-      ? `<div class="dimmer" style="font-size:11.5px;margin-top:6px">${lastReportedLine(gas)}</div>`
+      ? `<div class="dimmer" style="font-size:12px;margin-top:6px">${lastReportedLine(gas)}</div>`
       : ''}
         ${!gas.today_reported && gas.meter_note_detail
-      ? `<div class="dimmer" style="font-size:11.5px;margin-top:2px">${esc(gas.meter_note_detail)}</div>`
+      ? `<div class="dimmer" style="font-size:12px;margin-top:2px">${esc(gas.meter_note_detail)}</div>`
       : ''}
       </div>
     </div>
@@ -1206,7 +1214,11 @@ function slideToday(payload) {
   const est = todayEstimate(gas);
 
   const width = 470;
-  const height = 120;
+  /* The height the panel actually gives this chart, so it is drawn at
+   * the size it claims to be. A taller viewBox is scaled down to fit,
+   * and the chart's own labels - its hour numbers - end up smaller
+   * than the text around them. */
+  const height = 76;
 
   // The week, one tile per day.
   //
@@ -1328,7 +1340,7 @@ function slideToday(payload) {
 
   const forecastBody = forecast.available ? `
     <div class="kpi" style="font-size:35px;color:var(--plum)">${num(forecast.tomorrow_m3, 2)}${unit ? `<span class="u">${unit}</span>` : ''}</div>
-    <div class="dimmer" style="font-size:11.5px;margin-top:5px">${forecastLine(gas, forecast)}</div>
+    <div class="dimmer" style="font-size:12px;margin-top:5px">${forecastLine(gas, forecast)}</div>
     <div class="fnote" style="margin-top:4px">
       ${num(forecast.outside_mean, 1)}°C forecast &middot; ${num(forecast.degree_days, 1)} degree-days at a ${num(forecast.base_temperature, 0)}°C base<br>
       Fitted on ${forecast.model ? forecast.model.days_used : 0} days of your own readings.
@@ -1351,20 +1363,20 @@ function slideToday(payload) {
       ? `${money(gas.cost_today)} so far &middot; ${hours(heating.heating_today_minutes)} of heating`
       : (est ? `about ${money(est.cost)} estimated &middot; ${hours(heating.heating_today_minutes)} of heating`
         : `${lagNote(gas)} &middot; ${hours(heating.heating_today_minutes)} of heating`)}</div>
-            ${gas.meter_note ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${esc(gas.meter_note)}</div>` : ''}
+            ${gas.meter_note ? `<div class="dimmer" style="font-size:12px;margin-top:4px">${esc(gas.meter_note)}</div>` : ''}
           </div>
           <div class="side">
             <div class="k">vs 7-day average</div>
             <div class="v ember">${comparison(payload)}${comparison(payload) === '—' ? '' : '%'}</div>
             <div class="k" style="margin-top:11px">month budget</div>
-            <div class="v">${money(budget.spend)}<span style="color:var(--dimmer);font-size:11px"> of ${money(budget.budget)}</span></div>
+            <div class="v">${money(budget.spend)}<span style="color:var(--dimmer);font-size:12px"> of ${money(budget.budget)}</span></div>
           </div>
         </div>
         <div class="svgwrap" style="margin-top:8px">
           ${chartDayShape(gas, width, height)
     || `<div class="fnote">${chartEmpty(gas, 'day')}</div>`}
         </div>
-        <div class="dimmer" style="font-size:10.5px;margin-top:2px">
+        <div class="dimmer" style="font-size:12px;margin-top:2px">
           the shape of a day &middot; the average use in each hour, over the last
           ${num((gas.hourly_profile || {}).days || 0, 0)} days
         </div>
@@ -1380,7 +1392,7 @@ function slideToday(payload) {
       <div class="panel" style="grid-column:1/-1">
         <div class="p-h"><h4>The week</h4>${weekPill}<span class="src">${weekCaption}</span></div>
         <div class="tiles weekstrip" style="grid-template-columns:repeat(7,1fr)">${week}</div>
-        ${weekNote ? `<div class="dimmer" style="font-size:11.5px;margin-top:4px">${weekNote}</div>` : ''}
+        ${weekNote ? `<div class="dimmer" style="font-size:12px;margin-top:4px">${weekNote}</div>` : ''}
       </div>
     </div>
   </div>`;

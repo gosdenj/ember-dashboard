@@ -179,11 +179,24 @@ padding rather than out of the type: the panels and the tiles gave up a
 pixel or two of padding, the rows gave up a fraction of a pixel each, and
 the tile labels tightened their tracking.
 
-Two things worth knowing about that:
+Then it moved again, and this time only the small end of it: **everything
+under twelve pixels went up a point, and the big figures stayed where they
+were.** On a 7" screen the difference between a ten-pixel label and an
+eleven-pixel one is the difference between reading the panel and squinting
+at it, and the big numbers were never the problem. The floor is now
+**eleven pixels**, and a test says so.
+
+Three things worth knowing about that:
 
 - **The tile labels must not wrap.** A wrapped label makes every tile in the
   row taller, because the grid stretches them, and that squeezes the row
   above it. One label wrapping is enough to break a slide.
+- **A chart is drawn in its own units, and it has to be drawn at the size of
+  the space it has.** The browser scales an SVG to fit its box, so a chart
+  whose viewBox is taller than the panel is shrunk to fit — and every label
+  on it shrinks with it. The hour numbers on the day chart came out at seven
+  pixels that way, and the chart floated in the middle of the panel instead
+  of filling it. The viewBox is now the height the panel actually has.
 - **The settings page keeps its own sizes.** It is a web page for a phone or
   a laptop, not the panel, and it is not drawn at 800×480.
 

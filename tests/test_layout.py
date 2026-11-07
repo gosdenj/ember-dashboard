@@ -720,6 +720,107 @@ class LayoutTests(unittest.TestCase):
         self.assertNotEqual(result["monoFont"], result["serif"],
                             "the numbers are not being set in JetBrains Mono")
 
+    def test_the_charts_are_drawn_at_the_size_of_the_panel(self):
+        """A chart scaled down to fit is a chart with unreadable labels.
+
+        A chart carries its own units, and the browser scales it to the
+        box it has. When the viewBox is taller than that box, the whole
+        chart - and every label on it - is shrunk to fit, and the chart
+        floats in the middle of the panel instead of filling it. The
+        hour numbers on the day chart came out at seven pixels that way.
+
+        So the chart has to be drawn at the size of the space it has:
+        the scale is the width of the box over the width of the
+        viewBox, and it has to be very nearly one.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1800)
+        charts = page.evaluate(
+            """() => {
+              const out = [];
+              for (const [fn, name] of [['slideHeating','heating'],
+                                        ['slideGas','gas'],
+                                        ['slideToday','today']]) {
+                const holder = document.createElement('div');
+                holder.style.cssText = 'position:absolute;left:0;top:0;' +
+                  'width:800px;height:480px';
+                document.body.appendChild(holder);
+                holder.innerHTML = window[fn](state.payload);
+                holder.querySelectorAll('.svgwrap > svg').forEach((svg) => {
+                  const vb = svg.viewBox.baseVal;
+                  if (!vb || !vb.width) return;
+                  const box = svg.getBoundingClientRect();
+                  const scale = Math.min(box.width / vb.width, box.height / vb.height);
+                  const labels = [];
+                  svg.querySelectorAll('text').forEach((t) => {
+                    const fs = parseFloat(getComputedStyle(t).fontSize);
+                    labels.push({text: t.textContent.trim().slice(0, 14),
+                                 onScreen: Math.round(fs * scale * 10) / 10});
+                  });
+                  out.push({slide: name, viewBox: `${vb.width}x${vb.height}`,
+                            scale: Math.round(scale * 1000) / 1000,
+                            fill: Math.round(100 * vb.width * scale / box.width),
+                            labels});
+                });
+                holder.remove();
+              }
+              return out;
+            }""")
+        page.close()
+
+        self.assertTrue(charts, "no charts were drawn")
+        for chart in charts:
+            where = f"{chart['slide']} chart, viewBox {chart['viewBox']}"
+            self.assertGreaterEqual(chart["scale"], 0.95,
+                                    f"the {where} is shrunk to fit, so its "
+                                    "labels are smaller than the text "
+                                    "around them")
+            for label in chart["labels"]:
+                self.assertGreaterEqual(label["onScreen"], 10.0,
+                                        f"the {where} draws {label['text']!r} "
+                                        f"at {label['onScreen']}px")
+
+    def test_nothing_on_the_panel_is_set_below_eleven_pixels(self):
+        """The smallest type on the panel is the type on the wall.
+
+        Ten pixels is the size at which the panel starts to be a
+        picture of a dashboard rather than a dashboard. This is the
+        floor, and the test is here so that a change to the type scale
+        has to say out loud that it is going under it.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1800)
+        small = page.evaluate(
+            """() => {
+              const out = [];
+              for (const [fn, name] of [['slideHeating','heating'],
+                                        ['slideGas','gas'],
+                                        ['slideToday','today']]) {
+                const holder = document.createElement('div');
+                holder.style.cssText = 'position:absolute;left:0;top:0;' +
+                  'width:800px;height:480px';
+                document.body.appendChild(holder);
+                holder.innerHTML = window[fn](state.payload);
+                holder.querySelectorAll('*').forEach((el) => {
+                  const text = (el.innerText || el.textContent || '').trim();
+                  if (!text) return;
+                  const fs = parseFloat(getComputedStyle(el).fontSize);
+                  if (fs < 11) {
+                    out.push({slide: name, size: fs,
+                              cls: (el.className || '').toString().slice(0, 24),
+                              text: text.replace(/\\s+/g, ' ').slice(0, 30)});
+                  }
+                });
+                holder.remove();
+              }
+              return out;
+            }""")
+        page.close()
+
+        self.assertEqual(small, [], "text on the panel is too small to read")
+
 
 class SettingsPageLayoutTests(unittest.TestCase):
     """The settings page is set up from a phone, usually.
