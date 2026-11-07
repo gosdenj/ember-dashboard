@@ -1243,7 +1243,7 @@ function slideToday(payload) {
       <div class="v ${estimated ? 'plum' : (isToday ? 'ember' : '')}">${esc(big)}</div>
       <div class="s">${esc(sub)}</div>
       <div class="s" style="color:var(--ember)">${day.heat_known === false
-        ? 'heating not recorded'
+        ? 'not recorded'
         : hours(day.heat_minutes) + (day.heat_partial ? '+' : '') + ' heating'}</div>
     </div>`;
   }).join('');

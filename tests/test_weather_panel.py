@@ -237,6 +237,25 @@ class TheHeatingHoursTests(_PanelFixture, unittest.TestCase):
             self.assertIn("heat_known", day)
             self.assertIsInstance(day["heat_known"], bool)
 
+    def test_the_day_that_was_not_recorded_says_so_in_full(self):
+        """The week strip is seven tiles wide, so the line is short.
+
+        It used to say "heating not recorded", which was a character too
+        long for a tile and came out as "heating not rec..." - a reader
+        could not finish it. Nothing may be cut off in the week strip.
+        """
+        page = self._page()
+        page.evaluate(
+            "() => { state.payload.heating.days = state.payload.heating.days"
+            ".map((day) => ({...day, heat_known: false})); render(); }")
+        page.wait_for_timeout(300)
+        cut = page.evaluate(
+            """() => Array.from(document.querySelectorAll('.slide .weekstrip .s'))
+                 .filter((el) => el.scrollWidth > el.clientWidth + 1)
+                 .map((el) => el.innerText.trim())""")
+        page.close()
+        self.assertEqual(cut, [], f"cut off in the week strip: {cut}")
+
 
 class TheRecordedFlagTests(unittest.TestCase):
     """The history store knows what it knows."""
