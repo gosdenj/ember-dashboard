@@ -206,6 +206,159 @@ class WeekStripTests(_WeekFixture, unittest.TestCase):
         self.assertIn("estimated until the meter reports", text)
 
 
+class WeekTotalTests(_WeekFixture, unittest.TestCase):
+    """The week, as one number, next to its heading.
+
+    The tiles say what each day cost; this says what the week cost
+    altogether. It is the sum of the days that have a cost, so a day the
+    meter has not reported is left out rather than guessed at - and when
+    any of it is an estimate, the total says so.
+    """
+
+    def _total(self, page, days):
+        """The week panel, built from the given days."""
+        return page.evaluate(
+            """(days) => {
+              const holder = document.createElement('div');
+              holder.style.position = 'absolute';
+              holder.style.left = '-9999px';
+              document.body.appendChild(holder);
+              holder.innerHTML = slideToday({
+                gas: {}, forecast: {}, budget: {}, weather: {},
+                heating: {days: days},
+              });
+              const panels = Array.from(holder.querySelectorAll('.panel'));
+              const panel = panels.find((p) => {
+                const h4 = p.querySelector('.p-h h4');
+                return h4 && h4.innerText.trim().toLowerCase() === 'the week';
+              });
+              let out = {found: !!panel};
+              if (panel) {
+                const head = panel.querySelector('.p-h');
+                const pill = head.querySelector('.pill.cost');
+                out.heading = head.querySelector('h4').innerText.trim();
+                out.pill = pill ? {
+                  text: pill.innerText.trim(),
+                  colour: getComputedStyle(pill).color,
+                } : null;
+                out.inTheHeadingRow = !!(pill && head.contains(pill));
+              }
+              holder.remove();
+              return out;
+            }""", days)
+
+    @staticmethod
+    def _day(cost, status="measured", estimated=False):
+        return {"label": "Mon", "status": status, "estimated": estimated,
+                "cost": cost, "m3": 1.0, "heat_minutes": 60,
+                "heat_known": True, "heat_partial": False}
+
+    def test_the_week_has_a_total_next_to_its_heading(self):
+        page = self._page()
+        result = self._total(page, [self._day(1.5)])
+        page.close()
+        self.assertTrue(result["found"], "there is no week panel")
+        self.assertIsNotNone(result["pill"], "the week has no total")
+        self.assertTrue(result["inTheHeadingRow"],
+                        "the total is not next to the heading")
+
+    def test_the_total_is_the_sum_of_the_days(self):
+        page = self._page()
+        result = self._total(page, [self._day(1.40), self._day(2.50),
+                                    self._day(3.10)])
+        page.close()
+        self.assertEqual(result["pill"]["text"], "£7.00")
+
+    def test_the_total_says_nothing_but_the_total(self):
+        """A pill with a heading in it is two things in one place."""
+        page = self._page()
+        result = self._total(page, [self._day(1.40), self._day(2.50)])
+        page.close()
+        text = result["pill"]["text"]
+        self.assertNotIn("week", text.lower())
+        self.assertNotIn("cost", text.lower())
+        self.assertTrue(text.startswith("£"), text)
+
+    def test_a_measured_week_is_a_plain_number(self):
+        """Every day measured means the total is a fact."""
+        page = self._page()
+        result = self._total(page, [self._day(1.40), self._day(2.50)])
+        page.close()
+        self.assertEqual(result["pill"]["text"], "£3.90")
+        self.assertNotIn("176, 122, 214", result["pill"]["colour"],
+                         "a measured total is wearing the colour of an estimate")
+
+    def test_an_estimated_day_makes_the_total_an_estimate(self):
+        """The tilde, and the plum, mean the same thing as they do on a tile."""
+        page = self._page()
+        result = self._total(page, [self._day(1.40),
+                                    self._day(2.50, status="estimated",
+                                              estimated=True)])
+        page.close()
+        self.assertEqual(result["pill"]["text"], "~£3.90")
+        self.assertIn("176, 122, 214", result["pill"]["colour"],
+                      result["pill"]["colour"])
+
+    def test_a_day_with_no_cost_is_left_out_of_the_total(self):
+        """It is not guessed at, but the total still says it is a guess."""
+        page = self._page()
+        result = self._total(page, [self._day(1.40),
+                                    self._day(None, status="none")])
+        page.close()
+        self.assertEqual(result["pill"]["text"], "~£1.40")
+        self.assertIn("176, 122, 214", result["pill"]["colour"],
+                      result["pill"]["colour"])
+
+    def test_a_week_with_nothing_in_it_has_no_total(self):
+        """Nothing to add up means nothing to say."""
+        page = self._page()
+        result = self._total(page, [])
+        page.close()
+        self.assertTrue(result["found"], "there is no week panel")
+        self.assertIsNone(result["pill"], "a total was invented")
+
+    def test_the_total_agrees_with_the_tiles_below_it(self):
+        """The number and the tiles have to be the same week.
+
+        This is the check that matters: the panel is showing real
+        days, and the total beside the heading has to be the sum of
+        the very tiles under it.
+        """
+        page = self._page()
+        shown = page.evaluate(
+            """() => {
+              const panel = Array.from(document.querySelectorAll('.panel'))
+                .find((p) => {
+                  const h4 = p.querySelector('.p-h h4');
+                  return h4 && h4.innerText.trim().toLowerCase() === 'the week';
+                });
+              const pill = panel.querySelector('.pill.cost');
+              const tiles = Array.from(panel.querySelectorAll('.weekstrip > .tile'))
+                .map((t) => t.querySelector('.v').innerText.trim());
+              return {pill: pill ? pill.innerText.trim() : null, tiles: tiles};
+            }""")
+        page.close()
+        self.assertIsNotNone(shown["pill"], "the week has no total")
+        total = 0.0
+        counted = 0
+        for big in shown["tiles"]:
+            if big.startswith("~") or big == "—":
+                continue
+            total += float(big.replace("£", "").replace(",", ""))
+            counted += 1
+        self.assertGreater(counted, 0, "no tile had a cost")
+        # The pill is the whole week's total, so it is at least the sum
+        # of the measured days, and it is the same to the penny when
+        # every day was measured.
+        pill = shown["pill"]
+        self.assertTrue(pill.startswith("£") or pill.startswith("~£"), pill)
+        if all(big.startswith("£") for big in shown["tiles"]):
+            self.assertEqual(pill, f"£{total:.2f}")
+        else:
+            self.assertTrue(pill.startswith("~"), pill)
+            self.assertGreaterEqual(float(pill.replace("~£", "")), total - 0.01)
+
+
 class DayCostTests(unittest.TestCase):
     """What a day cost, and at what rate."""
 

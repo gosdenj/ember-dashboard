@@ -1,17 +1,22 @@
-"""The home ring: what its length and its colour mean.
+"""The rings: what their length and their colour mean.
 
-The ring used to measure the distance to the setpoint - (home - 10) over
-(target - 10) - which is not a temperature and is not even stable. The
-heating schedule swings the setpoint from 7 degrees, while the heating
-is off, to 21 while it is on, so the same house could look full or
-three-quarters full with nothing in the world having changed. The colour
-was a constant orange that had nothing to do with the temperature at
-all, so there was no "colour temperature" to speak of.
+The home ring used to measure the distance to the setpoint - (home - 10)
+over (target - 10) - which is not a temperature and is not even stable.
+The heating schedule swings the setpoint from 7 degrees, while the
+heating is off, to 21 while it is on, so the same house could look full
+or three-quarters full with nothing in the world having changed. The
+colour was a constant orange that had nothing to do with the temperature
+at all, so there was no "colour temperature" to speak of.
 
 It is now a thermometer: the length is the house's own temperature on a
 fixed scale, and the colour is that same scale's ramp. Both come from
 one number, and the setpoint is a mark on the scale rather than more of
 the arc.
+
+The outside ring is the same ramp on the same scale, but it stays a
+solid ring: it is not a gauge, and its length would only compete with
+the home ring's. Its colour says how cold it is out - so a blue ring
+beside an orange one means what it looks like, cold out and warm in.
 
 It needs Playwright and a Chromium. Where that is not available the test
 skips rather than fails, so the rest of the suite still runs on a plain
@@ -49,7 +54,7 @@ def _rgb(colour):
     return tuple(int(float(part)) for part in parts)
 
 
-class HomeRingTests(unittest.TestCase):
+class RingTests(unittest.TestCase):
     """The ring has to mean one thing, and mean it the same way twice."""
 
     @classmethod
@@ -129,6 +134,40 @@ class HomeRingTests(unittest.TestCase):
                 numberColour: number ? number.getAttribute('fill') : null,
               };
             }""", [home, target])
+        page.close()
+        return result
+
+    def outside_ring(self, outside):
+        """The outside ring, drawn with the given temperature.
+
+        Like the home ring above, this is built by the page's own
+        function, so this is what the panel shows.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
+        page.wait_for_timeout(1200)
+        result = page.evaluate(
+            """(outside) => {
+              const holder = document.createElement('div');
+              holder.innerHTML = ringDiagram({
+                home_temp: 19.0, target_temp: 20.0, outside_temp: outside,
+                boiler_on: false, boosts: [],
+              });
+              const group = holder.querySelector('[data-ring="outside"]');
+              const circle = group.querySelector('circle');
+              const icon = group.querySelector('[data-icon]');
+              const number = group.querySelector('text');
+              return {
+                stroke: circle.getAttribute('stroke'),
+                dash: circle.getAttribute('stroke-dasharray'),
+                width: circle.getAttribute('stroke-width'),
+                hasIcon: !!icon,
+                iconName: icon ? icon.getAttribute('data-icon') : null,
+                iconColour: icon ? icon.getAttribute('fill') : null,
+                number: number ? number.textContent : null,
+                numberColour: number ? number.getAttribute('fill') : null,
+              };
+            }""", outside)
         page.close()
         return result
 
@@ -239,6 +278,70 @@ class HomeRingTests(unittest.TestCase):
                              "the house is sitting on the number")
         self.assertLessEqual(boxes["number"]["bottom"], boxes["label"]["top"],
                              "the number is sitting on the label")
+
+    # -- the outside ring ---------------------------------------------------
+
+    def test_the_outside_ring_is_still_a_whole_ring(self):
+        """It is not a gauge.
+
+        The outside ring was a solid circle before it took a colour, and
+        it has to stay one: a second arc on the panel would compete with
+        the home ring's, and the home ring is the one that is a gauge.
+        """
+        ring = self.outside_ring(4.0)
+        self.assertIsNone(ring["dash"],
+                          "the outside ring is no longer a whole circle")
+
+    def test_a_cold_outside_is_blue(self):
+        """The colour follows the temperature, as the home ring's does."""
+        cold = _rgb(self.outside_ring(2.0)["stroke"])
+        self.assertGreater(cold[2], cold[0], "a cold outside is not blue")
+
+    def test_a_warm_outside_is_orange(self):
+        warm = _rgb(self.outside_ring(24.0)["stroke"])
+        self.assertGreater(warm[0], warm[2], "a warm outside is not orange")
+
+    def test_the_outside_colour_moves_with_the_temperature(self):
+        """Every step up the scale is a step towards the warm end."""
+        previous = None
+        for temp in (2.0, 9.0, 16.0, 23.0):
+            red, green, blue = _rgb(self.outside_ring(temp)["stroke"])
+            warmth = red - blue
+            if previous is not None:
+                self.assertGreater(warmth, previous,
+                                   f"{temp} degrees is not warmer than the last")
+            previous = warmth
+
+    def test_the_outside_and_the_home_share_one_scale(self):
+        """The same temperature is the same colour, in or out.
+
+        Two scales on one panel would mean two things to learn, and the
+        eye would have to work out which is which.
+        """
+        for temp in (4.0, 12.0, 20.0):
+            self.assertEqual(self.outside_ring(temp)["stroke"],
+                             self.ring(temp)["iconColour"],
+                             f"{temp} degrees is not the same colour in and out")
+
+    def test_the_outside_symbol_and_the_number_take_the_ring_colour(self):
+        """One number, one colour - the whole ring agrees."""
+        ring = self.outside_ring(8.0)
+        self.assertEqual(ring["iconColour"], ring["stroke"])
+        self.assertEqual(ring["numberColour"], ring["stroke"])
+
+    def test_the_outside_snowflake_sits_on_a_cold_ring(self):
+        """The symbol and the colour have to tell the same story."""
+        ring = self.outside_ring(1.0)
+        self.assertEqual(ring["iconName"], "snowflake")
+        red, green, blue = _rgb(ring["stroke"])
+        self.assertGreater(blue, red, "a snowflake is not on a cold ring")
+
+    def test_no_reading_leaves_the_outside_ring_quiet(self):
+        """Nothing to say means no colour, not a wrong one."""
+        ring = self.outside_ring(None)
+        self.assertEqual(ring["stroke"], "var(--dimmer)")
+        self.assertEqual(ring["number"], "—")
+        self.assertIsNone(ring["dash"])
 
 
 if __name__ == "__main__":

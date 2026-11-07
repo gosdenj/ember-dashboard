@@ -464,6 +464,21 @@ function ringDiagram(heating) {
    */
   const heat = heatScale(home);
   const heatInk = heat === null ? 'var(--dimmer)' : heatColour(heat);
+
+  /* The outside ring is the same ramp, on the same scale.
+   *
+   * It stays a solid ring - it is not a gauge, and its length would only
+   * compete with the home ring's. But its colour says how cold it is
+   * out, from the weather's blue to the boiler's orange.
+   *
+   * The scale is the home ring's, deliberately: one scale and one ramp
+   * for the whole panel, so the same temperature is the same colour
+   * whether it is inside or outside, and a blue ring next to an orange
+   * one means exactly what it looks like - cold out, warm in.
+   */
+  const outsideHeat = heatScale(outside);
+  const outsideInk = outsideHeat === null ? 'var(--dimmer)' : heatColour(outsideHeat);
+
   const homeR = 64;
   const circumference = 2 * Math.PI * homeR;
   const dash = Math.round(circumference * (heat === null ? 0 : heat));
@@ -534,9 +549,9 @@ function ringDiagram(heating) {
     </g>
 
     <g data-ring="outside">
-      <circle cx="${outX}" cy="${outY}" r="${satR}" fill="#11161d" stroke="var(--ice)" stroke-width="2.6"/>
-      ${ringIcon(outsideIcon(outside), outX, outY - 17, 20, 'var(--ice)')}
-      <text x="${outX}" y="${outY + 20}" text-anchor="middle" fill="var(--ice)"
+      <circle cx="${outX}" cy="${outY}" r="${satR}" fill="#11161d" stroke="${outsideInk}" stroke-width="2.6"/>
+      ${ringIcon(outsideIcon(outside), outX, outY - 17, 20, outsideInk)}
+      <text x="${outX}" y="${outY + 20}" text-anchor="middle" fill="${outsideInk}"
             font-family="JetBrains Mono,monospace" font-size="17" font-weight="600">${outside === null ? '—' : num(outside) + '°'}</text>
       <text x="${outX}" y="92" text-anchor="middle" fill="var(--dim)"
             font-family="Outfit,sans-serif" font-size="9.5" letter-spacing="1.4">OUTSIDE</text>
@@ -1231,6 +1246,25 @@ function slideToday(payload) {
       + `${partialHeat} only partly watched, so those heating times are a lower bound`;
   }
 
+  /* The week, as one number.
+   *
+   * The tiles below say what each day cost; this says what the week
+   * cost altogether. It is the sum of the days that have a cost, and a
+   * day with no cost is left out rather than guessed at - so the
+   * number never claims to be more than it knows.
+   *
+   * When any part of it is an estimate the total says so with a tilde
+   * and wears the same plum as the estimates themselves, because a
+   * rounded-up guess dressed as a fact is the one thing a cost must
+   * never be.
+   */
+  const costed = days.filter((day) => day.cost !== null && day.cost !== undefined);
+  const weekTotal = costed.reduce((sum, day) => sum + Number(day.cost || 0), 0);
+  const weekApprox = costed.length !== days.length || estimatedDays > 0;
+  const weekPill = costed.length
+    ? `<span class="pill cost${weekApprox ? ' approx' : ''}">${weekApprox ? '~' : ''}${money(weekTotal)}</span>`
+    : '';
+
   const weather = payload.weather || {};
   const wxToday = weather.today || {};
   const wxTomorrow = weather.tomorrow || {};
@@ -1326,7 +1360,7 @@ function slideToday(payload) {
       </div>
 
       <div class="panel" style="grid-column:1/-1">
-        <div class="p-h"><h4>The week</h4></div>
+        <div class="p-h"><h4>The week</h4>${weekPill}</div>
         <div class="tiles weekstrip" style="grid-template-columns:repeat(7,1fr)">${week}</div>
       </div>
     </div>

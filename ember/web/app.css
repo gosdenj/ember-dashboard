@@ -139,6 +139,16 @@ html, body {
   color: var(--dim); border-color: var(--line); background: rgba(255,255,255,.03);
   flex: none; white-space: nowrap;
 }
+/* The week's cost, next to its heading. Plain ink when every day of the
+   week was measured, and the plum of an estimate when some of it was
+   not - the same rule the tiles follow. */
+.pill.cost {
+  color: var(--ink); border-color: var(--line); background: rgba(255,255,255,.04);
+  flex: none; white-space: nowrap;
+}
+.pill.cost.approx {
+  color: var(--plum); border-color: rgba(176,122,214,.35); background: var(--plum-soft);
+}
 .row.summary { padding-top: 6px; }
 .row.summary .nm { flex: 1; }
 .slide-head svg { color: var(--dimmer); }

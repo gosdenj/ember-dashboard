@@ -179,6 +179,13 @@ and another with its length. The white notch across the ring is where the
 **setpoint** sits on that same scale, so the setpoint is visible without the
 ring changing length when the heating schedule moves.
 
+**The outside ring wears the same ramp.** It stays a solid circle — it is not
+a gauge, and a second arc would only compete with the home ring's — but its
+colour comes from the same scale and the same ramp, so the same temperature is
+the same colour in or out. A blue outside ring beside an orange home ring says
+what it looks like: cold out, warm in. The snowflake, the sun and the number
+take the ring's colour too.
+
 **The other rings say what they are.** A flame for a boiler that is firing, a
 snowflake for a cold morning, a sun for a warm one, a plain thermometer for
 anything in between.
@@ -249,7 +256,10 @@ gas — the plum figure, the cost, the degree-days at the base temperature, and
 the note about how many days the fit is standing on.
 
 **The week** is a strip of days: what each one cost, the gas behind it, and
-the heating hours beside it.
+the heating hours beside it. Next to the heading is the **week's total** in a
+pill — the sum of the days that have a cost, and nothing else. When any of it
+is an estimate the pill carries a tilde and the plum of an estimate, so it never
+claims to be more than it knows.
 
 ### The header
 
@@ -311,6 +321,10 @@ heating.
   an estimate with a guess.
 - **A day that is only half read is estimated too**, because a half-read day
   is not a cheaper day — the strip compares whole days with whole days.
+- **The week's total is the sum of the days that have a cost.** A day the meter
+  has not reported is left out of it rather than guessed at, so the total is
+  never more than the panel knows. When any part of it is an estimate the total
+  says so with a tilde and wears the plum, exactly as the tiles do.
 
 Ember's weekly costs and the Octopus app's are **not the same kind of
 number**, and that is the whole difference. Octopus's app shows an estimate
