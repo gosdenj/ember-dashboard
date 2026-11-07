@@ -26,6 +26,36 @@ from ember.server import EmberServer
 
 CHROMIUM = "/root/.cache/ms-playwright/chromium-1243/chrome-linux/chrome"
 
+# The gas panel when Octopus has not delivered today yet, which is most
+# days. It is copied from a real reading rather than invented, because
+# the point is the amount of text in it.
+BEHIND_THE_METER = """() => {
+  state.payload.gas.unit = 'm3';
+  state.payload.gas.unit_label = 'm³';
+  state.payload.gas.unit_reason = 'the meter is U, which reads cubic metres, '
+    + 'so that is what is used - the readings alone would have suggested unknown';
+  state.payload.gas.unit_unknown = null;
+  state.payload.gas.calorific = 11.16;
+  state.payload.gas.unit_rate_p = 8.4378;
+  state.payload.gas.standing_p = 28.4;
+  state.payload.gas.energy_p = null;
+  state.payload.gas.cost_today = null;
+  state.payload.gas.today_reported = false;
+  state.payload.gas.today_m3 = null;
+  state.payload.gas.today_kwh = null;
+  state.payload.gas.today_note = 'no reading for today yet - 40 hours behind';
+  state.payload.gas.meter_note = null;
+  state.payload.gas.today_estimate = {
+    m3: 4.62, band: 1.82, kwh: 51.5, cost: 4.63,
+    outside_mean: 9.55, degree_days: 6.4, days_used: 19,
+  };
+  state.payload.gas.last_reported = {
+    date: '2026-11-05', label: '5 November',
+    m3: 5.1, kwh: 56.9, cost: 5.09,
+  };
+  render();
+}"""
+
 
 def _chromium_path():
     if os.path.isfile(CHROMIUM):
@@ -76,12 +106,15 @@ class LayoutTests(unittest.TestCase):
         cls.history.close()
         cls.tmp.cleanup()
 
-    def check(self, width, height, slide, selector=".panel"):
+    def check(self, width, height, slide, selector=".panel", inject=None):
         page = self.browser.new_page(viewport={"width": width, "height": height})
         errors = []
         page.on("pageerror", lambda exc: errors.append(str(exc)))
         page.goto(f"http://127.0.0.1:{self.port}/?slide={slide}")
         page.wait_for_timeout(1800)
+        if inject:
+            page.evaluate(inject)
+            page.wait_for_timeout(300)
         overflow = page.evaluate(
             """(selector) => {
               const bad = [];
@@ -155,6 +188,21 @@ class LayoutTests(unittest.TestCase):
 
     def test_today_slide_fits(self):
         self.assertEqual(self.check(800, 480, "today"), [])
+
+    def test_the_gas_slide_fits_when_the_meter_is_behind(self):
+        """The live panel is fuller than the demo's, and it has to fit too.
+
+        Octopus delivers a day or two late, so the day on the panel is
+        usually an estimate rather than a reading - and the note about
+        which unit the meter reads runs to two lines. That is the worst
+        case the gas slide has, and the demo - which reports today and
+        says its unit in one line - never reaches it.
+
+        This is the panel's own worst case, written out: the cost's
+        explanation has to fit above the unit's note without pushing
+        the unit rate out of sight.
+        """
+        self.assertEqual(self.check(800, 480, "gas", inject=BEHIND_THE_METER), [])
 
     def test_the_slide_itself_does_not_scroll(self):
         for slide in ("heating", "gas", "today"):

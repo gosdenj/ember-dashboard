@@ -1151,7 +1151,7 @@ function slideGas(payload) {
           <div class="row"><span class="nm">Standing charge</span><span class="t">${gas.standing_p === null || gas.standing_p === undefined ? '\u2014' : money(gas.standing_p / 100)}</span></div>
           <div class="row"><span class="nm">Unit rate</span><span class="t">${gas.unit_rate_p === null || gas.unit_rate_p === undefined ? '\u2014' : num(gas.unit_rate_p, 2) + 'p/kWh'}</span></div>
         </div>
-        ${costExplained ? `<div class="dimmer" style="font-size:10.5px;margin-top:6px">The cost today is the energy charge plus the standing charge.</div>` : ''}
+        ${costExplained ? `<div class="dimmer" style="font-size:9.5px;margin-top:5px">the cost is the energy charge plus the standing charge</div>` : ''}
         ${gas.unit_reason ? `<div class="foot">Unit: ${esc(gas.unit_label || gas.unit)} &mdash; ${esc(gas.unit_reason)}.</div>` : ''}
       </div>
 
