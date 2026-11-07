@@ -736,7 +736,36 @@ class LayoutTests(unittest.TestCase):
         page = self.browser.new_page(viewport={"width": 800, "height": 480})
         page.goto(f"http://127.0.0.1:{self.port}/?slide=heating")
         page.wait_for_timeout(1800)
-        charts = page.evaluate(
+        charts = self._charts(page)
+        # The demo's gas slide has room to spare. The live one does not:
+        # the meter is behind, so the tiles carry a "last reported" line
+        # under them, the row above them is shorter, and the chart has
+        # less room. That is the case that has to hold.
+        page.evaluate(BEHIND_THE_METER)
+        page.wait_for_timeout(300)
+        charts += self._charts(page)
+        page.close()
+
+        # Every slide has a chart, and every chart has to be checked -
+        # a chart that has moved out of the way the test looks for it
+        # would otherwise go unchecked without saying anything.
+        for slide in ("heating", "gas", "today"):
+            self.assertTrue([c for c in charts if c["slide"] == slide],
+                            f"no chart was found on the {slide} slide")
+        for chart in charts:
+            where = f"{chart['slide']} chart, viewBox {chart['viewBox']}"
+            self.assertGreaterEqual(chart["scale"], 0.95,
+                                    f"the {where} is shrunk to fit, so its "
+                                    "labels are smaller than the text "
+                                    "around them")
+            for label in chart["labels"]:
+                self.assertGreaterEqual(label["onScreen"], 10.0,
+                                        f"the {where} draws {label['text']!r} "
+                                        f"at {label['onScreen']}px")
+
+    def _charts(self, page):
+        """Every chart on every slide, and how big its labels come out."""
+        return page.evaluate(
             """() => {
               const out = [];
               for (const [fn, name] of [['slideHeating','heating'],
@@ -747,7 +776,7 @@ class LayoutTests(unittest.TestCase):
                   'width:800px;height:480px';
                 document.body.appendChild(holder);
                 holder.innerHTML = window[fn](state.payload);
-                holder.querySelectorAll('.svgwrap > svg').forEach((svg) => {
+                holder.querySelectorAll('.panel > svg, .svgwrap > svg').forEach((svg) => {
                   const vb = svg.viewBox.baseVal;
                   if (!vb || !vb.width) return;
                   const box = svg.getBoundingClientRect();
@@ -767,19 +796,6 @@ class LayoutTests(unittest.TestCase):
               }
               return out;
             }""")
-        page.close()
-
-        self.assertTrue(charts, "no charts were drawn")
-        for chart in charts:
-            where = f"{chart['slide']} chart, viewBox {chart['viewBox']}"
-            self.assertGreaterEqual(chart["scale"], 0.95,
-                                    f"the {where} is shrunk to fit, so its "
-                                    "labels are smaller than the text "
-                                    "around them")
-            for label in chart["labels"]:
-                self.assertGreaterEqual(label["onScreen"], 10.0,
-                                        f"the {where} draws {label['text']!r} "
-                                        f"at {label['onScreen']}px")
 
     def test_nothing_on_the_panel_is_set_below_eleven_pixels(self):
         """The smallest type on the panel is the type on the wall.
