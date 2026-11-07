@@ -3,6 +3,7 @@
 import json
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -25,6 +26,13 @@ class ServerTests(unittest.TestCase):
         cls.history = History(data / "history.db")
         provider = DemoProvider()
         provider.seed(cls.history)
+        # The demo's boiler runs from six in the morning, so between
+        # midnight and six the figure for today is honestly zero - the
+        # boiler has not run yet. That is right, and a test that wants
+        # a number has to make one for itself: without this, the test
+        # fails whenever it is run in the small hours, which is a
+        # quarter of the day.
+        cls.history.record_poll(time.time() - 30, True, 19.5, 5.0)
         cls.dashboard = Dashboard(cls.settings, cls.history, provider)
         cls.dashboard.poll()
         cls.server = EmberServer(("127.0.0.1", 0), cls.settings, cls.dashboard)
@@ -148,6 +156,7 @@ class ServerTests(unittest.TestCase):
         self.assertIn("history", body)
 
     def test_the_heating_hours_are_counted(self):
+        """The boiler's hours come from Ember's own polls."""
         payload = json.loads(self.get("/api/state")[1])
         self.assertGreater(payload["heating"]["heating_today_minutes"], 0)
         self.assertGreater(payload["heating"]["heating_week_minutes"], 0)
