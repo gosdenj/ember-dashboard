@@ -1,19 +1,57 @@
 /* Outfit and JetBrains Mono, self-hosted so the kiosk works with no
-   internet. Latin and Latin-Extended subsets only. */
+   internet. Latin and Latin-Extended subsets.
 
+   The 'latin' subset is the one that matters: it is the only one with
+   the letters, the digits and the punctuation the panel uses. The
+   'latin-ext' subset has none of those - a file of accented characters
+   and no A-Z - so a panel that ships only that one is not using these
+   fonts at all, it is using whatever the machine happens to have
+   instead. On a Raspberry Pi that is the system's own sans-serif, which
+   is wider than Outfit, and every line that fitted on a laptop does not
+   fit on the wall.
+
+   So: the latin subset has to be here, and it has to be the first one.
+   The browser only uses a face for the characters its unicode-range
+   covers, and where the two ranges overlap it takes the first face that
+   has the character. The latin-ext subset is here for the accented
+   characters in a place name, and it comes second. */
+
+/* latin */
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
   font-weight: 100 800;
   font-display: swap;
-  src: url('jetbrains-mono-100_800.woff2') format('woff2');
+  src: url('jetbrains-mono-100_800-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('jetbrains-mono-100_800-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
+
+/* latin */
 @font-face {
   font-family: 'Outfit';
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('outfit-100_900.woff2') format('woff2');
+  src: url('outfit-100_900-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* latin-ext */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('outfit-100_900-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }

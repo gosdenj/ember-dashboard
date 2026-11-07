@@ -187,6 +187,32 @@ Two things worth knowing about that:
 - **The settings page keeps its own sizes.** It is a web page for a phone or
   a laptop, not the panel, and it is not drawn at 800×480.
 
+### The fonts
+
+The panel is set in **Outfit** and **JetBrains Mono**, self-hosted so the
+kiosk needs no internet. The interesting part is *which* subsets are
+shipped.
+
+Google Fonts serves each family in two files: a **latin** subset with the
+letters, the digits and the punctuation, and a **latin-ext** subset with
+the accented characters. A browser only uses a face for the characters
+its `unicode-range` covers, and the latin-ext range starts at U+0100 — so
+a panel that ships only that file has none of the characters it needs,
+and the browser quietly falls back to whatever the machine happens to
+have. On a laptop that is the system font and nobody notices. On a
+Raspberry Pi it is the system's own sans-serif, which is wider than
+Outfit, so every line that fitted on the desk does not fit on the wall.
+
+So the latin subset has to be there, and it has to come first: where the
+two ranges overlap, the browser takes the first face that has the
+character. The latin-ext subset is here too, for the accented characters
+in a place name.
+
+This is worth knowing because the failure is invisible from the
+development machine. The layout was measured on a Mac, in the fallback
+font, and looked fine — and the panel on the wall was set in a wider one
+and lost the last line of every note it had.
+
 ### The heating panel
 
 Four rings: **home** in the middle, the **boiler** and the **outside** in the

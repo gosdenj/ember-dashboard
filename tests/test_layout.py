@@ -10,6 +10,7 @@ machine.
 """
 
 import os
+import re
 import shutil
 import socket
 import tempfile
@@ -65,6 +66,86 @@ def _chromium_path():
         if os.path.isfile(candidate):
             return candidate
     return None
+
+
+def _covers(unicode_range, codepoint):
+    """Does a CSS unicode-range cover a character?
+
+    The browser rewrites the range it was given - U+0000-00FF comes back
+    as U+0-FF - so the test cannot look for the text it wrote. It has to
+    ask the question instead.
+    """
+    for part in unicode_range.split(","):
+        part = part.strip()
+        if part.upper().startswith("U+"):
+            part = part[2:]
+        if "-" in part:
+            low, high = part.split("-", 1)
+            if int(low, 16) <= codepoint <= int(high, 16):
+                return True
+        elif part and int(part, 16) == codepoint:
+            return True
+    return False
+
+
+class FontTests(unittest.TestCase):
+    """The panel must be set in its own fonts, not the machine's.
+
+    Google Fonts serves each family in two files: a latin subset with the
+    letters, the digits and the punctuation, and a latin-ext subset with
+    the accented characters. A browser only uses a face for the
+    characters its unicode-range covers, and the latin-ext range starts
+    at U+0100 - so a face covering only that range has none of the
+    letters, none of the digits and none of the punctuation the panel
+    uses. Everything quietly falls back to whatever the machine has.
+
+    On a laptop that is the system font and nobody notices. On a
+    Raspberry Pi it is the system's own sans-serif, which is wider than
+    Outfit, so every line that fitted on the desk does not fit on the
+    wall - and the failure is invisible from the development machine.
+
+    So the check is not that the CSS looks right. The check is that the
+    right file is shipped, in the right order, and that the browser
+    really does set the text in it.
+    """
+
+    WEB = Path(__file__).resolve().parent.parent / "ember" / "web"
+
+    def test_the_latin_subset_is_shipped_and_came_first(self):
+        """The letters have to be in a file, and in the right place.
+
+        The latin-ext subset covers U+0100 and up: accented characters
+        and no A-Z. A panel that ships that one alone is not using these
+        fonts at all, it is using the machine's.
+        """
+        css = (self.WEB / "fonts" / "fonts.css").read_text()
+        rules = re.findall(r"@font-face\s*\{(.*?)\}", css, re.S)
+        self.assertTrue(rules, "no @font-face rules in fonts.css")
+
+        for family in ("Outfit", "JetBrains Mono"):
+            mine = [r for r in rules if f"'{family}'" in r]
+            self.assertTrue(mine, f"no rule for {family}")
+
+            first = mine[0]
+            self.assertIn("U+0000-00FF", first,
+                          f"the first {family} rule does not cover the "
+                          "letters, the digits or the punctuation")
+
+            # The latin subset comes first because the two ranges overlap
+            # in a few places, and where they do the browser takes the
+            # first face that has the character.
+            self.assertTrue(len(mine) > 1, f"{family} has no latin-ext rule")
+            self.assertIn("U+0100-02BA", mine[1],
+                          f"the second {family} rule is not the latin-ext one")
+
+            urls = []
+            for rule in mine:
+                url = re.search(r"url\('([^']+)'\)", rule).group(1)
+                path = self.WEB / "fonts" / url
+                self.assertTrue(path.is_file(), f"missing font file: {url}")
+                urls.append(url)
+            self.assertEqual(len(set(urls)), len(urls),
+                             f"{family} points both subsets at the same file")
 
 
 class LayoutTests(unittest.TestCase):
@@ -573,6 +654,71 @@ class LayoutTests(unittest.TestCase):
         scale = page.evaluate("() => getComputedStyle(document.getElementById('stage')).getPropertyValue('--k')")
         page.close()
         self.assertGreater(float(scale or 0), 1.0, "the canvas should fill a desktop")
+
+    def test_the_panel_is_set_in_its_own_fonts(self):
+        """The text has to be set in the panel's fonts, not the machine's.
+
+        Asking whether a family is available is not enough: a browser
+        will happily answer yes for a family it has fallen back for. The
+        text has to measure differently from the fallback, and that is
+        the only way to know the glyphs really came out of the file.
+
+        The comparison is against 'serif' rather than against the whole
+        stack, because the stack has fallbacks of its own: if Outfit were
+        missing, 'Outfit', system-ui would still measure differently
+        from serif and the panel would look fine here while being wrong
+        on the wall. It is not 'monospace' either - every monospace font
+        has the same advance width, so comparing JetBrains Mono with the
+        generic monospace would compare two identical rulers.
+        """
+        page = self.browser.new_page(viewport={"width": 800, "height": 480})
+        page.goto(f"http://127.0.0.1:{self.port}/?slide=today")
+        page.wait_for_timeout(1800)
+        result = page.evaluate(
+            """async () => {
+              await document.fonts.ready;
+              const faces = [];
+              document.fonts.forEach((f) => faces.push({
+                family: f.family, status: f.status, range: f.unicodeRange}));
+              const style = getComputedStyle(document.documentElement);
+              const sample = 'Forecast 8.4C and 7.6 degree-days at a 16C base';
+              const width = (family, size) => {
+                const span = document.createElement('span');
+                span.style.cssText = 'position:absolute;visibility:hidden;' +
+                  'white-space:nowrap;font-family:' + family +
+                  ';font-size:' + size + 'px;font-weight:400;';
+                span.textContent = sample;
+                document.body.appendChild(span);
+                const w = span.getBoundingClientRect().width;
+                span.remove();
+                return Math.round(w * 10) / 10;
+              };
+              return {
+                faces,
+                sans: style.getPropertyValue('--sans'),
+                mono: style.getPropertyValue('--mono'),
+                serif: width('serif', 11.5),
+                outfit: width("'Outfit', serif", 11.5),
+                monoFont: width("'JetBrains Mono', serif", 11.5),
+              };
+            }""")
+        page.close()
+
+        self.assertIn("Outfit", result["sans"],
+                      "the panel is not set in Outfit")
+        self.assertIn("JetBrains Mono", result["mono"],
+                      "the numbers are not set in JetBrains Mono")
+
+        for family in ("Outfit", "JetBrains Mono"):
+            loaded = [f for f in result["faces"]
+                      if family in f["family"] and f["status"] == "loaded"
+                      and _covers(f["range"], 0x41) and _covers(f["range"], 0x30)]
+            self.assertTrue(loaded, f"the {family} latin subset is not loaded")
+
+        self.assertNotEqual(result["outfit"], result["serif"],
+                            "the text is not being set in Outfit")
+        self.assertNotEqual(result["monoFont"], result["serif"],
+                            "the numbers are not being set in JetBrains Mono")
 
 
 class SettingsPageLayoutTests(unittest.TestCase):

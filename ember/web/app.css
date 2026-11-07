@@ -297,7 +297,7 @@ html, body {
 .legend i { width: 8px; height: 8px; border-radius: 2px; display: block; }
 
 .svgwrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
-.fnote { font-size: 11.5px; color: var(--dim); line-height: 1.5; margin-top: 9px; }
+.fnote { font-size: 11.5px; color: var(--dim); line-height: 1.35; margin-top: 9px; }
 
 /* The weather, in the shape a phone shows it. */
 .wx { display: flex; flex-direction: column; gap: 8px; margin-top: 0; }
@@ -316,6 +316,7 @@ html, body {
 .wx-right { flex: 0 0 auto; text-align: right; }
 .wx-temp {
   font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--ink);
+  line-height: 1.15;
 }
 .wx-range { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-top: 2px; }
 .wx-sep { height: 1px; background: var(--line); margin: 7px 0 6px; }
