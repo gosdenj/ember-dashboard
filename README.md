@@ -290,11 +290,23 @@ is the question that panel was missing.
 
 **A day the meter has not reported is never drawn as a zero.** Zero means no
 gas was used, which would be a lie. In the week view the column is drawn in
-**plum** with the band's whisker over the top, and a day with *part* of a
-reading keeps that part in teal, faded, under the estimate. In the month view
-it is a **dashed cell**, because the calendar's job is to show the pattern of
-the month, and the pattern includes a meter exchange. The legend under the
-chart says which is which.
+**plum**, and the **band** behind it is how far off the estimate could be — a
+shaded range, so the line along its top is the edge of a range and not
+another figure for the day. A day with *part* of a reading keeps that part in
+teal, faded, under the estimate. In the month view it is a **dashed cell**,
+because the calendar's job is to show the pattern of the month, and the
+pattern includes a meter exchange. The legend under the chart says which is
+which.
+
+**The band is the estimate's own range.** It is the 95% confidence band of the
+degree-day model — 1.96σ, and about ±1.7 m³ on a typical week — so it says
+how far off the estimate could be. It used to be drawn as a single line at the
+top of that range, and it read as another figure for the day: the line sat at
+the height of the tallest column in the chart, and above the week's average on
+a day whose estimate was below it. It is now a shaded range behind the column,
+so the line along its top is the edge of a region rather than a number. The
+chart is scaled to fit the band as well as the columns, because a band that
+runs off the top of the chart is a band that is not being shown.
 
 **Today's figures** are the day's volume and what it cost, broken down into
 the energy charge and the standing charge — the two add up to the cost above

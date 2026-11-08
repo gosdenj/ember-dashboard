@@ -737,6 +737,11 @@ function chartWeekOfDays(gas, width, height) {
   const est = todayEstimate(gas);
   const average = gas.average_m3;
 
+  // The band on an estimate: how far off it could be. The day carries its
+  // own band when it has one, and today's estimate carries it otherwise.
+  const bandOf = (own) => (own !== undefined && own !== null
+    ? own : (est ? est.band : null));
+
   // Each column is one day. A finished day is the metered total. Today
   // is whatever the meter has reported so far, with the estimate for
   // the whole day drawn on top of it - because today is not over, and a
@@ -754,7 +759,7 @@ function chartWeekOfDays(gas, width, height) {
       const estimate = day.m3 || 0;
       return {
         day, isToday, measured, estimate,
-        band: day.band,
+        band: bandOf(day.band),
         total: Math.max(estimate, measured),
         known: true, estimated: true,
         partial: day.reported && day.complete === false,
@@ -765,6 +770,7 @@ function chartWeekOfDays(gas, width, height) {
       const estimate = est ? est.m3 : null;
       return {
         day, isToday, measured, estimate,
+        band: estimate !== null ? bandOf(null) : null,
         total: estimate !== null ? Math.max(estimate, measured) : measured,
         known: measured > 0 || estimate !== null,
       };
@@ -772,11 +778,12 @@ function chartWeekOfDays(gas, width, height) {
     if (!day.reported) {
       // The meter sent nothing for this day and the model has nothing
       // to say about it either. A gap, not a zero.
-      return { day, isToday, measured: 0, estimate: null, total: 0, known: false };
+      return { day, isToday, measured: 0, estimate: null, total: 0,
+               band: null, known: false };
     }
     return {
       day, isToday, measured: day.value || 0, estimate: null,
-      total: day.value || 0, known: true,
+      band: null, total: day.value || 0, known: true,
       // Reported, but not the whole day - the first day in the
       // store, say. The figure is real but it is a part.
       partial: day.complete === false
@@ -787,8 +794,13 @@ function chartWeekOfDays(gas, width, height) {
   // like a week of no gas, which is not what happened.
   if (!columns.some((column) => column.known)) return '';
 
+  // The band is drawn, so the chart has to have room for it. A band that
+  // runs off the top of the chart is a band that is not being shown.
   const peak = Math.max.apply(null,
-    columns.map((column) => column.total).concat([average || 0, 0.0001]));
+    columns.map((column) => column.total)
+      .concat(columns.map((column) => column.band === null
+        ? 0 : column.total + column.band))
+      .concat([average || 0, 0.0001]));
 
   const gap = 14;
   const barWidth = (width - gap * (week.length - 1)) / week.length;
@@ -810,33 +822,39 @@ function chartWeekOfDays(gas, width, height) {
         stroke-dasharray="3 3"/>`;
     } else {
       const measuredHeight = column.measured > 0 ? scale(column.measured) : 0;
+      const totalHeight = scale(column.total);
+      const from = baseline - measuredHeight;
+      const to = baseline - totalHeight;
+      // The band first, so it sits behind the column. It is how far off
+      // the estimate could be, and the column stands in front of the part
+      // of it below the estimate - so what shows is the room the estimate
+      // has above it, and the line along the top is the edge of that
+      // room rather than another figure for the day.
+      const band = column.estimate !== null ? column.band : null;
+      let bandTop = null;
+      if (band !== null && band !== undefined) {
+        bandTop = baseline - scale(column.total + band);
+        body += `<rect data-band="${Number(band).toFixed(2)}"
+          x="${x.toFixed(1)}" y="${bandTop.toFixed(1)}"
+          width="${barWidth.toFixed(1)}" height="${(to - bandTop).toFixed(1)}"
+          fill="var(--plum)" opacity=".4"/>`;
+      }
       if (measuredHeight > 0) {
         body += `<rect x="${x.toFixed(1)}" y="${(baseline - measuredHeight).toFixed(1)}"
           width="${barWidth.toFixed(1)}" height="${measuredHeight.toFixed(1)}"
           rx="3" fill="var(--teal)"${column.partial ? ' opacity=".5"' : ''}/>`;
       }
-      // The band, as a whisker over the top of the estimate. It says how
-      // far off the estimate could be, so the number has to clear it: a
-      // figure with a line through it reads as struck out.
-      const band = column.estimate !== null
-        ? (column.band !== undefined && column.band !== null
-          ? column.band : (est ? est.band : null))
-        : null;
-      // Where the number sits: above the bar, and above the whisker
-      // when there is one.
+      // Where the number sits: above the bar, and above the band when
+      // there is one. A figure with a line through it reads as struck out.
       let labelTop = baseline - scale(column.total);
       if (column.estimate !== null) {
         // The estimate sits on top of what has been measured, in plum -
         // the colour every estimate in Ember wears.
-        const totalHeight = scale(column.total);
-        const from = baseline - measuredHeight;
-        const to = baseline - totalHeight;
         if (to < from) {
           body += `<rect x="${x.toFixed(1)}" y="${to.toFixed(1)}" width="${barWidth.toFixed(1)}"
             height="${(from - to).toFixed(1)}" rx="3" fill="var(--plum)" opacity=".85"/>`;
         }
-        if (band) {
-          const bandTop = baseline - scale(column.total + band);
+        if (bandTop !== null) {
           body += `<line x1="${x.toFixed(1)}" y1="${bandTop.toFixed(1)}"
             x2="${(x + barWidth).toFixed(1)}" y2="${bandTop.toFixed(1)}"
             stroke="var(--plum)" stroke-width="1" stroke-dasharray="2 2" opacity=".8"/>`;
@@ -1013,11 +1031,16 @@ function gasChartPanel(gas) {
       '<span><i style="background:var(--ice)"></i>the week\'s average</span>' +
       '<span><i style="background:transparent;border:1px dashed var(--line)"></i>not reported</span>';
     const estimated = (gas.week || []).filter((day) => day.estimated).length;
-    // The legend already says what the dotted line is, so this only has
-    // to say what is new: how many of the columns are estimates rather
-    // than readings, and why.
+    // The legend says what the colours are, so this only has to say what
+    // the legend cannot: how many of the columns are estimates rather
+    // than readings, and what the band over them is. The band is a
+    // range - how far off the estimate could be - and the legend has no
+    // room for it.
     note = 'one column per day'
-      + (estimated ? ' &middot; ' + estimated + ' not reported yet, so estimated' : '');
+      + (estimated
+        ? ' &middot; ' + estimated + ' not reported yet'
+          + ' &middot; the band is how wrong it could be'
+        : '');
   }
 
   if (!body) {

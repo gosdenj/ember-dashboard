@@ -445,6 +445,177 @@ class TheWeekNumberTests(_GasViewsFixture, unittest.TestCase):
             self.assertGreaterEqual(column["labelY"], 12)
 
 
+class TheBandTests(_GasViewsFixture, unittest.TestCase):
+    """The band over an estimate is a range, and it has to be drawn as one.
+
+    The band used to be a single line at the top of the range, and it read
+    as another figure for the day. Sat's line sat at the height of the
+    tallest column in the chart, and the line was above the week's average
+    on a day whose estimate was below it - so the eye had Sat as a big day
+    when it was a small one.
+
+    The band is now drawn as a shaded range behind the column, so the line
+    along its top is the edge of a region and not a value.
+    """
+
+    # The chart's own arithmetic, so the test can say what the drawing
+    # should be and then check that it is.
+    HEIGHT = 180
+    BASELINE = HEIGHT - 20
+    TOP = 30
+
+    def _week(self):
+        """A week with two estimated days, and a known band."""
+        week = []
+        for index, (label, value) in enumerate(
+                [("Mon", 4.0), ("Tue", 5.0), ("Wed", 6.0),
+                 ("Thu", 5.0), ("Fri", 5.0)]):
+            week.append({"date": f"2026-11-0{index + 2}", "label": label,
+                         "value": value, "m3": value, "cost": value,
+                         "complete": True, "reported": True, "estimated": False})
+        week.append({"date": "2026-11-07", "label": "Sat", "value": 0.0,
+                     "m3": 4.0, "cost": 3.0, "band": 1.5, "complete": False,
+                     "reported": False, "estimated": True})
+        week.append({"date": "2026-11-08", "label": "Sun", "value": 0.0,
+                     "m3": 5.0, "cost": 4.0, "band": 1.5, "complete": False,
+                     "reported": False, "estimated": True})
+        return week
+
+    def _chart(self):
+        """The week view, drawn from the week above."""
+        page = self._page()
+        self._switch(page, "week")
+        page.evaluate(
+            """(gas) => {
+              state.payload.gas = Object.assign({}, state.payload.gas, gas);
+              render();
+            }""", {"week": self._week(), "average_m3": 5.0})
+        page.wait_for_timeout(300)
+        drawn = page.evaluate(
+            """() => Array.from(
+                 document.querySelectorAll('.slide .panel > svg g[data-day]'))
+                 .map((group) => {
+                   const band = group.querySelector('rect[data-band]');
+                   const column = Array.from(group.querySelectorAll('rect'))
+                     .find((r) => r.getAttribute('rx'));
+                   const line = group.querySelector('line[stroke="var(--plum)"]');
+                   return {
+                     day: group.getAttribute('data-day'),
+                     band: band ? {
+                       value: band.getAttribute('data-band'),
+                       y: parseFloat(band.getAttribute('y')),
+                       h: parseFloat(band.getAttribute('height')),
+                     } : null,
+                     columnTop: column
+                       ? parseFloat(column.getAttribute('y')) : null,
+                     lineY: line ? parseFloat(line.getAttribute('y1')) : null,
+                   };
+                 })""")
+        page.close()
+        # The chart is scaled to the highest thing it draws, and the band
+        # is one of the things it draws.
+        peak = max(6.0, 4.0 + 1.5, 5.0 + 1.5, 5.0)
+        return drawn, (self.BASELINE - self.TOP) / peak
+
+    def _day(self, drawn, date):
+        return next(column for column in drawn if column["day"] == date)
+
+    def test_the_band_is_drawn_behind_the_estimate(self):
+        """The column's top is the estimate; the band is the room above it."""
+        drawn, scale = self._chart()
+        sat = self._day(drawn, "2026-11-07")
+        self.assertIsNotNone(sat["band"], "Sat's estimate has no band drawn")
+        self.assertEqual(sat["band"]["value"], "1.50")
+        self.assertAlmostEqual(sat["columnTop"],
+                               self.BASELINE - 4.0 * scale, delta=0.1)
+        self.assertAlmostEqual(sat["band"]["y"],
+                               self.BASELINE - (4.0 + 1.5) * scale, delta=0.1)
+        # And the band comes down to the estimate, so the whole range is
+        # spoken for.
+        self.assertAlmostEqual(sat["band"]["y"] + sat["band"]["h"],
+                               sat["columnTop"], delta=0.1)
+
+    def test_the_line_along_the_band_is_its_top_and_not_a_value(self):
+        """The line is the edge of the range, and not a second figure."""
+        drawn, scale = self._chart()
+        sat = self._day(drawn, "2026-11-07")
+        self.assertAlmostEqual(sat["lineY"], sat["band"]["y"], delta=0.1)
+        # It is not at the estimate, which is what made it read as one.
+        # In SVG a smaller y is higher up, so the line is above the
+        # column's top by the width of the band.
+        self.assertAlmostEqual(sat["columnTop"] - sat["lineY"],
+                               1.5 * scale, delta=0.1)
+
+    def test_the_band_has_room_in_the_chart(self):
+        """A band that runs off the top of the chart is not being shown."""
+        drawn, scale = self._chart()
+        bands = [c for c in drawn if c["band"]]
+        self.assertTrue(bands, "no estimated day in the week view")
+        for column in bands:
+            self.assertGreaterEqual(column["band"]["y"], self.TOP - 0.01,
+                                    "the band runs off the top of the chart")
+
+    def test_a_day_that_was_measured_has_no_band(self):
+        """A reading is a reading. It does not get a band."""
+        drawn, scale = self._chart()
+        wed = self._day(drawn, "2026-11-04")
+        self.assertIsNone(wed["band"])
+        self.assertIsNone(wed["lineY"])
+
+    def _note(self, page):
+        """The note under the chart - not the one under another panel."""
+        return page.evaluate(
+            """() => {
+              const svg = document.querySelector('.slide .panel > svg');
+              const panel = svg.closest('.panel');
+              const notes = panel.querySelectorAll('.dimmer');
+              return notes[notes.length - 1].innerText;
+            }""")
+
+    def _note_lines(self, page):
+        """How many lines the note takes. A range over the text gives one
+        rectangle per line, which is the honest way to count them."""
+        return page.evaluate(
+            """() => {
+              const svg = document.querySelector('.slide .panel > svg');
+              const panel = svg.closest('.panel');
+              const notes = panel.querySelectorAll('.dimmer');
+              const range = document.createRange();
+              range.selectNodeContents(notes[notes.length - 1]);
+              return range.getClientRects().length;
+            }""")
+
+    def test_the_note_says_what_the_band_is(self):
+        """The legend has no room for the band, so the note has to say it."""
+        page = self._page()
+        self._switch(page, "week")
+        page.evaluate(
+            """(gas) => {
+              state.payload.gas = Object.assign({}, state.payload.gas, gas);
+              render();
+            }""", {"week": self._week(), "average_m3": 5.0})
+        page.wait_for_timeout(300)
+        note = self._note(page)
+        lines = self._note_lines(page)
+        page.close()
+        self.assertIn("band", note.lower())
+
+    def test_the_note_stays_on_one_line(self):
+        """A note that wraps pushes the panel down, and a note that fits by
+        a pixel is a note that wraps as soon as the wording changes."""
+        page = self._page()
+        self._switch(page, "week")
+        page.evaluate(
+            """(gas) => {
+              state.payload.gas = Object.assign({}, state.payload.gas, gas);
+              render();
+            }""", {"week": self._week(), "average_m3": 5.0})
+        page.wait_for_timeout(300)
+        lines = self._note_lines(page)
+        page.close()
+        self.assertEqual(lines, 1, "the note under the chart wrapped")
+
+
 class GapHonestyTests(_GasViewsFixture, unittest.TestCase):
     """A day the meter did not report is drawn as a gap."""
 
