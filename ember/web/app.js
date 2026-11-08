@@ -617,13 +617,13 @@ function slideHeating(payload) {
     ${head(SLIDE_TITLES.heating)}
     <div class="slide-body">
       <div class="panel">
-        <div class="p-h"><h4>Heating now</h4><span class="src">from Hive</span></div>
+        <div class="p-h"><h4>Heating now</h4></div>
         ${trouble(problemFor('hive'), 'Open the settings page (/settings) and sign in to Hive there. Ember picks the session up from then on.')}
         ${problemFor('hive') ? '' : `<div class="svgwrap">${ringDiagram(heating)}</div>`}
       </div>
 
       <div class="panel">
-        <div class="p-h"><h4>Status</h4><span class="src">Ember's polls &middot; only while it was watching</span></div>
+        <div class="p-h"><h4>Status</h4></div>
         ${problemFor('hive') ? trouble(problemFor('hive')) : `<div class="big">
           <div>
             <div class="kpi">${heating.home_temp === null || heating.home_temp === undefined ? '—' : num(heating.home_temp)}<span class="u">°C</span></div>
@@ -645,7 +645,7 @@ function slideHeating(payload) {
       </div>
 
       <div class="panel" style="grid-column:1/-1">
-        <div class="p-h"><h4>Rooms &middot; radiator valves</h4><span class="src">from Hive</span></div>
+        <div class="p-h"><h4>Rooms &middot; radiator valves</h4></div>
         ${problemFor('hive')
       ? `<div class="trouble"><div class="h">The rooms appear once Hive is reachable.</div></div>`
       : `<div class="rooms-grid">${grid}</div>`}
@@ -1133,7 +1133,7 @@ function slideGas(payload) {
       ${gasChartPanel(gas)}
 
       <div class="panel">
-        <div class="p-h"><h4>Today</h4><span class="src">from your Octopus meter</span></div>
+        <div class="p-h"><h4>Today</h4></div>
         ${trouble(problemFor('octopus'))}
         <div class="big">
           <div>
@@ -1293,7 +1293,6 @@ function slideToday(payload) {
    * under the strip says what is not settled - the days still waiting
    * for the meter, and the days Ember did not watch all of.
    */
-  const weekCaption = 'the heating hours are the time the boiler was actually on';
 
   const weather = payload.weather || {};
   const wxToday = weather.today || {};
@@ -1354,7 +1353,7 @@ function slideToday(payload) {
     ${head(SLIDE_TITLES.today)}
     <div class="slide-body s3">
       <div class="panel">
-        <div class="p-h"><h4>Today</h4><span class="src">gas from your Octopus meter &middot; heat from Hive</span></div>
+        <div class="p-h"><h4>Today</h4></div>
         ${trouble(problemFor('octopus') || problemFor('hive'))}
         <div class="big">
           <div>
@@ -1383,14 +1382,14 @@ function slideToday(payload) {
       </div>
 
       <div class="panel">
-        <div class="p-h"><h4>Today &amp; tomorrow</h4><span class="src">weather &middot; gas forecast</span></div>
+        <div class="p-h"><h4>Today &amp; tomorrow</h4></div>
         ${weatherBody}
         <div class="wx-gas-label">Tomorrow's gas</div>
         ${forecastBody}
       </div>
 
       <div class="panel" style="grid-column:1/-1">
-        <div class="p-h"><h4>The week</h4>${weekPill}<span class="src">${weekCaption}</span></div>
+        <div class="p-h"><h4>The week</h4>${weekPill}</div>
         <div class="tiles weekstrip" style="grid-template-columns:repeat(7,1fr)">${week}</div>
         ${weekNote ? `<div class="dimmer" style="font-size:12px;margin-top:4px">${weekNote}</div>` : ''}
       </div>
@@ -1445,7 +1444,7 @@ function slideTransition(ghost, way) {
   const deck = document.getElementById('deck');
   const live = deck.querySelector('.slide:not(.ghost)');
   const still = window.matchMedia
-              && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* The copy dissolves under the slide that is arriving.  It is a
    * little slower than the slide itself, so the old one is still
@@ -1456,9 +1455,9 @@ function slideTransition(ghost, way) {
       if (GHOST === ghost) GHOST = null;
     } else {
       const g = ghost.animate(
-        [{opacity: 1, transform: 'translateX(0)'},
-         {opacity: 0, transform: 'translateX(0)'}],
-        {duration: 560, delay: 60, easing: 'ease-in-out'});
+        [{ opacity: 1, transform: 'translateX(0)' },
+        { opacity: 0, transform: 'translateX(0)' }],
+        { duration: 560, delay: 60, easing: 'ease-in-out' });
       g.onfinish = () => {
         ghost.remove();
         if (GHOST === ghost) GHOST = null;
@@ -1471,9 +1470,9 @@ function slideTransition(ghost, way) {
   live.classList.add('dealing');
   const from = (way < 0) ? '-100%' : '100%';
   SLIDE_ANIM = live.animate(
-    [{transform: 'translateX(' + from + ')', opacity: .8},
-     {transform: 'translateX(0)', opacity: 1}],
-    {duration: 420, easing: 'cubic-bezier(.22,.61,.36,1)'});
+    [{ transform: 'translateX(' + from + ')', opacity: .8 },
+    { transform: 'translateX(0)', opacity: 1 }],
+    { duration: 420, easing: 'cubic-bezier(.22,.61,.36,1)' });
   SLIDE_ANIM.onfinish = () => live.classList.remove('dealing');
 }
 
@@ -1679,7 +1678,7 @@ async function boot() {
 
   function swipeIsOne(g) {
     return Math.abs(g.dx) >= SWIPE_DISTANCE
-        && Math.abs(g.dx) > Math.abs(g.dy) * SWIPE_SLOP;
+      && Math.abs(g.dx) > Math.abs(g.dy) * SWIPE_SLOP;
   }
 
   function swipeStart(e) {
@@ -1690,11 +1689,11 @@ async function boot() {
     /* Buttons, links and the like are left to themselves. */
     const target = e.target;
     if (target && target.closest
-        && target.closest('a,button,input,select,textarea,label')) return;
-    SWIPE = {id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0};
+      && target.closest('a,button,input,select,textarea,label')) return;
+    SWIPE = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
     /* The finger keeps the gesture even if it wanders off the element
      * it started on. */
-    try { e.target.setPointerCapture(e.pointerId); } catch (_) {}
+    try { e.target.setPointerCapture(e.pointerId); } catch (_) { }
   }
 
   function swipeMove(e) {
@@ -1711,13 +1710,13 @@ async function boot() {
     if (!SWIPE || e.pointerId !== SWIPE.id) return;
     const dx = SWIPE.dx, dy = SWIPE.dy;
     SWIPE = null;
-    if (!swipeIsOne({dx: dx, dy: dy})) return;
+    if (!swipeIsOne({ dx: dx, dy: dy })) return;
     /* Left is the next slide, right the one before. */
     goSlide(dx < 0 ? 1 : -1);
   }
 
-  window.addEventListener('pointerdown', swipeStart, {passive: true});
-  window.addEventListener('pointermove', swipeMove, {passive: false});
+  window.addEventListener('pointerdown', swipeStart, { passive: true });
+  window.addEventListener('pointermove', swipeMove, { passive: false });
   window.addEventListener('pointerup', swipeEnd);
   window.addEventListener('pointercancel', () => { SWIPE = null; });
 

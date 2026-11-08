@@ -165,6 +165,14 @@ for the one before — the same as the arrow keys. A drag has to be longer than
 60px and clearly across rather than down, so reaching for a control does not
 change the slide by accident.
 
+**A panel's heading names the panel and stops.** It says what is inside —
+*Heating now*, *Today*, *The week* — and nothing stands beside it. The slides
+used to carry a line saying where the numbers came from (*from Hive*, *from
+your Octopus meter*); those lines were taken off, because the reader already
+knows which account is which, and a panel with one job says it once. Anything
+that genuinely needs explaining is explained in the README or in the settings
+page, not on the panel.
+
 ### The type
 
 The panel is drawn at 800×480 and shown 1:1, so every size in `app.css` is a
@@ -488,7 +496,6 @@ asking for it.
 
 The figure is the **time the boiler was actually on**, counted from Ember's
 own polls — not read from a schedule, and not the hours the schedule allowed.
-The panel says so: *"heating is the time the boiler was actually on"*.
 
 Three things make the count honest:
 
@@ -508,11 +515,10 @@ Three things make the count honest:
 
 So Ember publishes, for every day, **how much of it it was watching**, and
 says so where it matters: *"Heating today"* and *"Heating this week"* read
-*"at least 2h 00m"* when the count is a lower bound; the Status panel says the
-hours come from **Ember's own polls, only while it was watching**; the week's
-tiles mark a partly-watched day with a **+**; and a day Ember was not running
-says **not recorded**, not `0h 00m`, because a zero is a claim — and the claim
-would be "the heating never came on", which is not what happened.
+*"at least 2h 00m"* when the count is a lower bound; the week's tiles mark a
+partly-watched day with a **+**; and a day Ember was not running says **not
+recorded**, not `0h 00m`, because a zero is a claim — and the claim would be
+"the heating never came on", which is not what happened.
 
 The count is still a sample — the boiler's state is only known at the moments
 Ember polled it, so a run shorter than the poll interval can be missed. At two

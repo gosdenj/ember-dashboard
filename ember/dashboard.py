@@ -587,7 +587,7 @@ class Dashboard:
         account = self.settings.get("octopus_account", "")
         if not api_key or not account:
             errors.append({"source": "octopus",
-                           "message": "no API key or account number yet"})
+                           "message": "no Octopus API key or account number yet"})
             return result
 
         client = Octopus(api_key, account)

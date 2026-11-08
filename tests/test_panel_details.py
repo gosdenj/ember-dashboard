@@ -301,10 +301,6 @@ class ThePartialHeatingTests(_PanelFixture, unittest.TestCase):
                             heating_week_partial=False)
         self.assertNotIn("at least", html)
 
-    def test_the_source_line_says_it_only_counts_what_it_watched(self):
-        html = self._slide()
-        self.assertIn("only while it was watching", html)
-
     def _week(self, **day):
         base = {"label": "Sat", "m3": 1.8, "cost": 1.4, "heat_minutes": 256,
                 "heat_known": True, "heat_partial": False,

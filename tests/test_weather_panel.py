@@ -211,12 +211,6 @@ class TheWeatherPanelTests(_PanelFixture, unittest.TestCase):
 class TheHeatingHoursTests(_PanelFixture, unittest.TestCase):
     """Where the week's heating hours come from."""
 
-    def test_the_panel_says_what_the_number_is(self):
-        page = self._page()
-        text = page.evaluate("() => document.querySelector('.slide').innerText")
-        page.close()
-        self.assertIn("the time the boiler was actually on", text.lower())
-
     def test_a_day_with_no_record_says_so(self):
         """Ember not running is not the same as the heating never
         coming on, so it does not say "0h 00m"."""
